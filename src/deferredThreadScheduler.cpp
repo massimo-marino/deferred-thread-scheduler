@@ -14,19 +14,67 @@
 namespace deferredThreadScheduler
 {
 std::string const deferredThreadSchedulerBase::version = "1.0.0";
-////////////////////////////////////////////////////////////////////////////////
-//
-// deferredThreadSchedulerVersion
-//
-// Purpose: Return the library version
-//
+
 const std::string& deferredThreadSchedulerBase::deferredThreadSchedulerVersion () noexcept
 {
   return version;
 }
 
+deferredThreadSchedulerBase::deferredThreadSchedulerBase(const std::string& threadName) noexcept
+:
+threadName_ (threadName)
+{}
+
 deferredThreadSchedulerBase::~deferredThreadSchedulerBase()
 {}
+
+const
+std::string&
+deferredThreadSchedulerBase::getThreadName() const noexcept
+{
+  return threadName_;
+}
+
+void
+deferredThreadSchedulerBase::cancelThread() const noexcept
+{
+  {
+    std::unique_lock<std::mutex> lk(cv_m_);
+    if ( (threadState::NotValid != getThreadState_()) &&
+         (threadState::Scheduled != getThreadState_()) )
+    {
+      return;
+    }
+    setThreadState(threadState::Cancelled);
+  }
+  cv_.notify_one();
+}
+
+const
+std::thread::id
+deferredThreadSchedulerBase::getThreadId() const noexcept
+{
+  return threadId_;
+}
+
+void
+deferredThreadSchedulerBase::setThreadState(const threadState& threadState) const noexcept
+{
+  threadState_ = threadState; 
+}
+
+const
+std::shared_future<int>&
+deferredThreadSchedulerBase::getThreadFuture() const noexcept
+{
+  return threadFuture_;
+}
+
+void
+deferredThreadSchedulerBase::setThreadId() const noexcept
+{
+  threadId_ = std::this_thread::get_id();
+}
 
 }  // namespace deferredThreadScheduler
 ////////////////////////////////////////////////////////////////////////////////

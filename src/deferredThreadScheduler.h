@@ -35,34 +35,16 @@ public:
   deferredThreadSchedulerBase& operator=(const deferredThreadSchedulerBase& rhs) = default;
 
   explicit
-  deferredThreadSchedulerBase(const std::string& threadName) noexcept
-  :
-  threadName_ (threadName)
-  {}
+  deferredThreadSchedulerBase(const std::string& threadName) noexcept;
 
   virtual ~deferredThreadSchedulerBase();
 
   const
   std::string&
-  getThreadName() const noexcept
-  {
-    return threadName_;
-  }
+  getThreadName() const noexcept;
 
   void
-  cancelThread() const noexcept
-  {
-    {
-      std::unique_lock<std::mutex> lk(cv_m_);
-      if ( (threadState::NotValid != getThreadState_()) &&
-           (threadState::Scheduled != getThreadState_()) )
-      {
-        return;
-      }
-      setThreadState(threadState::Cancelled);
-    }
-    cv_.notify_one();
-  }
+  cancelThread() const noexcept;
 
   constexpr
   auto
@@ -80,10 +62,7 @@ public:
 
   const
   std::thread::id
-  getThreadId() const noexcept
-  {
-    return threadId_;
-  }
+  getThreadId() const noexcept;
 
  protected:
   std::string threadName_ {};
@@ -98,10 +77,7 @@ public:
   mutable std::shared_future<int> threadFuture_ {};
 
   void
-  setThreadState(const threadState& threadState) const noexcept
-  {
-    threadState_ = threadState; 
-  }
+  setThreadState(const threadState& threadState) const noexcept;
 
   constexpr
   threadState
@@ -112,16 +88,10 @@ public:
 
   const
   std::shared_future<int>&
-  getThreadFuture() const noexcept
-  {
-    return threadFuture_;
-  }
+  getThreadFuture() const noexcept;
 
   void
-  setThreadId() const noexcept
-  {
-    threadId_ = std::this_thread::get_id();
-  }
+  setThreadId() const noexcept;
 };  // class deferredThreadSchedulerBase
 
 using defaultFun = std::function<void()>;
