@@ -53,13 +53,15 @@ TEST(deferredThreadScheduler, test_1)
 
   std::cout << "[ " << __func__ << " ] "
             << "Thread name: "
-            << dts.getThreadName() << std::endl;
+            << dts.getThreadName()
+            << std::endl;
   std::cout << "[ " << __func__ << " ] "
             << "waiting for thread "
             << dts.getThreadName()
             << " [ id 0x"
             << std::hex << dts.getThreadId() << std::dec
-            << " ] to run..." << std::endl;
+            << " ] to run..."
+            << std::endl;
   dts.wait();
 
   ASSERT_EQ(dts.getThreadState(),
@@ -101,13 +103,15 @@ TEST(deferredThreadScheduler, test_2)
 
   std::cout << "[ " << __func__ << " ] "
             << "Thread name: "
-            << dts.getThreadName() << std::endl;
+            << dts.getThreadName()
+            << std::endl;
   std::cout << "[ " << __func__ << " ] "
             << "waiting for thread "
             << dts.getThreadName()
             << " [ id 0x"
             << std::hex << dts.getThreadId() << std::dec
-            << " ] to run..." << std::endl;
+            << " ] to run..."
+            << std::endl;
   dts.wait();
 
   ASSERT_EQ(dts.getThreadState(),
@@ -150,13 +154,15 @@ TEST(deferredThreadScheduler, test_2_1)
 
   std::cout << "[ " << __func__ << " ] "
             << "Thread name: "
-            << dts.getThreadName() << std::endl;
+            << dts.getThreadName()
+            << std::endl;
   std::cout << "[ " << __func__ << " ] "
             << "waiting for thread "
             << dts.getThreadName()
             << " [ id 0x"
             << std::hex << dts.getThreadId() << std::dec
-            << " ] to run..." << std::endl;
+            << " ] to run..."
+            << std::endl;
   dts.wait();
 
   ASSERT_EQ(dts.getThreadState(),
@@ -193,13 +199,15 @@ TEST(deferredThreadScheduler, test_3)
 
   std::cout << "[ " << __func__ << " ] "
             << "Thread name: "
-            << dts.getThreadName() << std::endl;
+            << dts.getThreadName()
+            << std::endl;
   std::cout << "[ " << __func__ << " ] "
             << "waiting for thread "
             << dts.getThreadName()
             << " [ id 0x"
             << std::hex << dts.getThreadId() << std::dec
-            << " ] to run..." << std::endl;
+            << " ] to run..."
+            << std::endl;
   dts.wait();
 
   ASSERT_EQ(dts.getThreadState(),
@@ -223,13 +231,14 @@ TEST(deferredThreadScheduler, test_4)
   usleep(5'000);
   std::cout << "[ " << __func__ << " ] "
             << "Thread name: "
-            << dts.getThreadName() << std::endl;
+            << dts.getThreadName()
+            << std::endl;
   std::cout << "[ " << __func__ << " ] "
             << "waiting for thread "
             << dts.getThreadName()
             << " [ id 0x"
             << std::hex << dts.getThreadId() << std::dec
-            << " ] to run..." << std::endl;
+            << " ] to run...";
 
   // cancel the thread after 7 seconds; the test should take a bit more than
   // 7 seconds, not 60 seconds as requested at the declaration of dts
@@ -241,6 +250,8 @@ TEST(deferredThreadScheduler, test_4)
 
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::Cancelled));
+  std::cout << " Cancelled."
+            << std::endl;
 }
 
 // schedule 2 threads at the same time and tun them
@@ -316,15 +327,14 @@ TEST(deferredThreadScheduler, test_6)
                                           << std::endl;
                               });
     v.push_back(dtsPtr);
-  }
-  for (auto& dts : v)
-  {
-    ASSERT_EQ(dts.get()->getThreadState(),
+
+    ASSERT_EQ(dtsPtr.get()->getThreadState(),
               static_cast<int>(deferredThreadSchedulerBase::threadState::NotValid));
-    dts.get()->runIn(deferredTime);
   }
   for (auto& dts : v)
   {
+    dts.get()->runIn(deferredTime);
+
     ASSERT_EQ(dts.get()->getThreadState(),
               static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled));
   }
@@ -359,15 +369,14 @@ TEST(deferredThreadScheduler, test_7)
                                           << std::endl;
                               });
     v.push_back(dtsPtr);
-  }
-  for (auto& dts : v)
-  {
-    ASSERT_EQ(dts.get()->getThreadState(),
+
+    ASSERT_EQ(dtsPtr.get()->getThreadState(),
               static_cast<int>(deferredThreadSchedulerBase::threadState::NotValid));
-    dts.get()->runIn(deferredTime);
   }
   for (auto& dts : v)
   {
+    dts.get()->runIn(deferredTime);
+
     ASSERT_EQ(dts.get()->getThreadState(),
               static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled));
   }
@@ -377,9 +386,7 @@ TEST(deferredThreadScheduler, test_7)
   for (auto& dts : v)
   {
     dts.get()->cancelThread();
-  }
-  for (auto& dts : v)
-  {
+
     ASSERT_EQ(dts.get()->getThreadState(),
               static_cast<int>(deferredThreadSchedulerBase::threadState::Cancelled));
   }
