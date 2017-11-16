@@ -252,23 +252,23 @@ TEST(deferredThreadScheduler, test_5)
 
   auto dtsPtr_1 = std::make_shared<deferredThreadScheduler<defaultFun>>("voidFoo");
   dtsPtr_1.get()->registerThread([i]() -> void
-                    {
-                      utilities::pclog{} << "[ " << __func__ << " ] "
-                                << i
-                                << ": voidFoo() #1 running: "
-                                << "................................."
-                                << std::endl;
-                    });
+                              {
+                                utilities::pclog{} << "[ " << __func__ << " ] "
+                                          << i
+                                          << ": voidFoo() #1 running: "
+                                          << "................................."
+                                          << std::endl;
+                              });
   ++i;
   auto dtsPtr_2 = std::make_shared<deferredThreadScheduler<defaultFun>>("voidFoo");
   dtsPtr_2.get()->registerThread([i]() -> void
-                    {
-                      utilities::pclog{} << "[ " << __func__ << " ] "
-                                << i
-                                << ": voidFoo() #2 running: "
-                                << "................................."
-                                << std::endl;
-                    });
+                              {
+                                utilities::pclog{} << "[ " << __func__ << " ] "
+                                          << i
+                                          << ": voidFoo() #2 running: "
+                                          << "................................."
+                                          << std::endl;
+                              });
 
   dtsPtr_1.get()->runIn(deferredTime);
   dtsPtr_2.get()->runIn(deferredTime);
@@ -304,24 +304,18 @@ TEST(deferredThreadScheduler, test_6)
   std::vector<dtsSharedPtr> v {};
   auto deferredTime = 3s;
 
-  for(int i = 1; i <= 10; ++i)
+  for(int i = 1; i <= 50; ++i)
   {
-    //auto dtsPtr = makeSharedDeferredThreadScheduler<defaultFun>("voidFoo");
-    auto dtsPtr = std::make_shared<deferredThreadScheduler<defaultFun>>("voidFoo");
+    auto dtsPtr = makeSharedDeferredThreadScheduler<defaultFun>("voidFoo");
     dtsPtr.get()->registerThread([i]() -> void
-                    {
-                      utilities::pclog{} << "[ " << __func__ << " ] "
-                                << i
-                                << ": voidFoo() running: "
-                                << "................................."
-                                << std::endl;
-                    });
+                              {
+                                utilities::pclog{} << "[ " << __func__ << " ] "
+                                          << i
+                                          << ": voidFoo() running: "
+                                          << "................................."
+                                          << std::endl;
+                              });
     v.push_back(dtsPtr);
-  }
-  for (auto& dts : v)
-  {
-    ASSERT_EQ(dts.get()->getThreadState(),
-              static_cast<int>(deferredThreadSchedulerBase::threadState::NotValid));
   }
   for (auto& dts : v)
   {
@@ -346,6 +340,50 @@ TEST(deferredThreadScheduler, test_6)
 }
 
 // schedule many threads at the same time and cancel them
+TEST(deferredThreadScheduler, test_7)
+{
+  using defaultFun = std::function<void()>;
+  using dtsSharedPtr = std::shared_ptr<deferredThreadScheduler<defaultFun>>;
+  std::vector<dtsSharedPtr> v {};
+  auto deferredTime = 60s;
+
+  for(int i = 1; i <= 10'000; ++i)
+  {
+    auto dtsPtr = makeSharedDeferredThreadScheduler<defaultFun>("voidFoo");
+    dtsPtr.get()->registerThread([i]() -> void
+                              {
+                                utilities::pclog{} << "[ " << __func__ << " ] "
+                                          << i
+                                          << ": voidFoo() running: "
+                                          << "................................."
+                                          << std::endl;
+                              });
+    v.push_back(dtsPtr);
+  }
+  for (auto& dts : v)
+  {
+    ASSERT_EQ(dts.get()->getThreadState(),
+              static_cast<int>(deferredThreadSchedulerBase::threadState::NotValid));
+    dts.get()->runIn(deferredTime);
+  }
+  for (auto& dts : v)
+  {
+    ASSERT_EQ(dts.get()->getThreadState(),
+              static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled));
+  }
+  // cancel the thread after 5 seconds; the test should take a bit more than
+  // 5 seconds, not 60 seconds as requested at the declaration of dts
+  sleep(5);
+  for (auto& dts : v)
+  {
+    dts.get()->cancelThread();
+  }
+  for (auto& dts : v)
+  {
+    ASSERT_EQ(dts.get()->getThreadState(),
+              static_cast<int>(deferredThreadSchedulerBase::threadState::Cancelled));
+  }
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 #pragma clang diagnostic pop

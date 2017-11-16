@@ -31,8 +31,6 @@ public:
   void* operator new(std::size_t) = delete;
   void* operator new[](std::size_t) = delete;
   deferredThreadSchedulerBase() = delete;
-
-  // default copy ctor
   deferredThreadSchedulerBase(const deferredThreadSchedulerBase& rhs) = default;
   deferredThreadSchedulerBase& operator=(const deferredThreadSchedulerBase& rhs) = default;
 
@@ -65,6 +63,7 @@ public:
     }
     cv_.notify_one();
   }
+
   constexpr
   auto
   wait() const noexcept
@@ -138,7 +137,6 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
   void* operator new(std::size_t) = delete;
   void* operator new[](std::size_t) = delete;
   deferredThreadScheduler() = delete;
-  // default copy ctor
   deferredThreadScheduler(const deferredThreadScheduler& rhs) = default;
   deferredThreadScheduler& operator=(const deferredThreadScheduler& rhs) = default;
 
@@ -182,12 +180,15 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
     };    
   }
 
-  void
+  auto
   runIn(const std::chrono::seconds deferredTimeSeconds) const noexcept
   {
     // run the closure async
     threadFuture_ = std::async(std::launch::async, f_, deferredTimeSeconds);
-    setThreadState(threadState::Scheduled);    
+    setThreadState(threadState::Scheduled);
+
+    // allow chain calls
+    return this;
   }
 };  // class deferredThreadScheduler
 
