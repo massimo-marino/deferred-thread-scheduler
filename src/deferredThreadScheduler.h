@@ -123,10 +123,7 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
   registerThread(const F& f) const noexcept
   {
     // create the closure
-    // NOTES: 
-    //   - deferredTimeSeconds MUST be captured by value, NOT by reference
-    //     Reason: testing has shown that if captured by reference the call to wait_for()
-    //     behaves weirdly (the timer seems messed up)
+    // NOTE:
     //   - f MUST be captured by value; if passed by reference the same lambda
     //     will be defined in all object instances created
     f_ = [this, f](const std::chrono::seconds deferredTimeSeconds) noexcept(false) -> int
