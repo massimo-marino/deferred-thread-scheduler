@@ -127,6 +127,15 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
   deferredThreadSchedulerBase(threadName)
   {}
 
+  explicit
+  deferredThreadScheduler(const std::string& threadName,
+                          const F& f) noexcept
+  :
+  deferredThreadSchedulerBase(threadName)
+  {
+    registerThread(f);
+  }
+    
   void
   registerThread(const F& f) const noexcept
   {
