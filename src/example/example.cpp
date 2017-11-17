@@ -79,6 +79,8 @@ auto main() -> int
             << "'\n";
 
   std::clog << "[" << __func__ << "] "
-            << "TERMINATED\n"
+            << "Deferred Thread Scheduler Example ENDED\n"
             << std::endl;
+  
+  return 0;
 }  // main

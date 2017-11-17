@@ -13,7 +13,6 @@
 #include <mutex>
 #include <future>
 #include <thread>
-#include <atomic>
 #include <condition_variable>
 #include <chrono>
 #include <unistd.h>
@@ -128,47 +127,49 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
 
   template <typename... Args>
   explicit
-  deferredThreadScheduler(const std::string& threadName,
-                          const F& f,
-                          const Args&... args) noexcept
+  deferredThreadScheduler(const std::string& threadName, F& f, Args&&... args) noexcept
   :
   deferredThreadSchedulerBase(threadName)
   {
-    registerThread(f, args...);
+    registerThread(std::forward<F>(f), std::forward<Args>(args)...);
   }
 
   template <typename... Args>
-  void
-  registerThread(const F& f, const Args&... args) const noexcept
+  auto
+  registerThread(const F& f, Args&&... args) const noexcept
   {
     // create the closure
     // NOTE:
     //   - f MUST be captured by value; if passed by reference the same lambda
     //     will be defined in all object instances created
-    f_ = [this, f, &args...](const std::chrono::seconds deferredTimeSeconds) noexcept(false) -> threadResult
-    {
-      RT result {};
-      setThreadId();
+    f_ = [this, f, &args...]
+         (const std::chrono::seconds& deferredTimeSeconds) noexcept(false) -> threadResult const
+         {
+           RT result {};
 
-      std::unique_lock<std::mutex> lk(cv_m_);
-      // wait on the condition variable until timeout or notification of cancellation
-      std::cv_status r = cv_.wait_for(lk, deferredTimeSeconds);
-      if ( std::cv_status::timeout == r )
-      {
-        if ( threadState::Scheduled == getThreadState_() )
-        {
-          // run thread function
-          setThreadState(threadState::Running);
-          result = f(args...);
-          setThreadState(threadState::Run);
-        }
-      }
-      return std::make_tuple(getThreadState(), result);
-    };    
+           setThreadId();
+
+           std::unique_lock<std::mutex> lk(cv_m_);
+           // wait on the condition variable until timeout or notification of cancellation
+           std::cv_status r = cv_.wait_for(lk, deferredTimeSeconds);
+           if ( std::cv_status::timeout == r )
+           {
+             if ( threadState::Scheduled == getThreadState_() )
+             {
+               // run thread function
+               setThreadState(threadState::Running);
+               result = f(std::forward<Args>(args)...);
+               setThreadState(threadState::Run);
+             }
+           }
+           return std::make_tuple(getThreadState(), result);
+         };
+    // allow chain calls
+    return this;
   }
 
   auto
-  runIn(const std::chrono::seconds deferredTimeSeconds) const noexcept
+  runIn(const std::chrono::seconds& deferredTimeSeconds) const noexcept
   {
     // run the closure async
     threadFuture_ = std::async(std::launch::async, f_, deferredTimeSeconds);
