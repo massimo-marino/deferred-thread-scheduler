@@ -22,7 +22,7 @@ $ make
 $ cd src/unitTests
 $ ./unitTests
 ```
-The unit tests provide examples of usage of active classes.
+The unit tests provide examples of usage.
 
 
 ## The Deferred Thread Scheduler
