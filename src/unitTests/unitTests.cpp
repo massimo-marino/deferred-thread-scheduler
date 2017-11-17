@@ -26,17 +26,19 @@ TEST(deferredThreadScheduler, deferredThreadSchedulerVersion)
 
 TEST(deferredThreadScheduler, test_1)
 {
-  using defaultFun = std::function<void()>;
-  defaultFun voidFoo = []() -> void
+  using threadResultType = int;
+  using defaultFun = std::function<threadResultType()>;
+  defaultFun intFoo = []() -> threadResultType
   {
     utilities::pclog{} << "[ " << __func__ << " ] "
-                       << "voidFoo() running................................."
+                       << "intFoo() running................................."
                        << std::endl;
+    return 135;
   };
 
   auto deferredTime = 5s;
-  deferredThreadScheduler<defaultFun> dts {"voidFoo"};
-  dts.registerThread(voidFoo);
+  deferredThreadScheduler<threadResultType, defaultFun> dts {"intFoo"};
+  dts.registerThread(intFoo);
 
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::NotValid));
@@ -62,8 +64,12 @@ TEST(deferredThreadScheduler, test_1)
             << std::hex << dts.getThreadId() << std::dec
             << " ] to run..."
             << std::endl;
-  dts.wait();
 
+  auto [threadState, threadResult] = dts.wait();
+
+  ASSERT_EQ(135, threadResult);
+  ASSERT_EQ(dts.getThreadState(),
+            threadState);
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::Run));
 }
@@ -73,20 +79,22 @@ TEST(deferredThreadScheduler, test_2)
 {
   std::string threadArg {"Hello World... "};
 
-  using defaultFun = std::function<void()>;
-  defaultFun voidFoo = [&threadArg] () -> void
+  using threadResultType = int;
+  using defaultFun = std::function<threadResultType()>;
+  defaultFun intFoo = [&threadArg] () -> threadResultType
   {
-    threadArg += "from voidFoo()!!!";
+    threadArg += "from intFoo()!!!";
     utilities::pclog{} << "[ " << __func__ << " ] "
-                       << "voidFoo() running: "
+                       << "intFoo() running: "
                        << threadArg
                        << "................................."
                        << std::endl;
+    return 246;
   };
 
   auto deferredTime = 3s;
-  deferredThreadScheduler<defaultFun> dts {"voidFoo"};
-  dts.registerThread(voidFoo);
+  deferredThreadScheduler<threadResultType, defaultFun> dts {"intFoo"};
+  dts.registerThread(intFoo);
 
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::NotValid));
@@ -112,11 +120,15 @@ TEST(deferredThreadScheduler, test_2)
             << std::hex << dts.getThreadId() << std::dec
             << " ] to run..."
             << std::endl;
-  dts.wait();
 
+  auto [threadState, threadResult] = dts.wait();
+
+  ASSERT_EQ(246, threadResult);
+  ASSERT_EQ(dts.getThreadState(),
+            threadState);
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::Run));
-  ASSERT_EQ(threadArg, "Hello World... from voidFoo()!!!");
+  ASSERT_EQ(threadArg, "Hello World... from intFoo()!!!");
 }
 
 // passing a thread argument by capturing it by value
@@ -124,20 +136,22 @@ TEST(deferredThreadScheduler, test_2_1)
 {
   std::string threadArg {"Hello World... "};
 
-  using defaultFun = std::function<void()>;
-  defaultFun voidFoo = [threadArg] () mutable -> void
+  using threadResultType = int;
+  using defaultFun = std::function<threadResultType()>;
+  defaultFun intFoo = [threadArg] () mutable -> threadResultType
   {
-    threadArg += "from voidFoo()!!!";
+    threadArg += "from intFoo()!!!";
     utilities::pclog{} << "[ " << __func__ << " ] "
-                       << "voidFoo() running: "
+                       << "intFoo() running: "
                        << threadArg
                        << "................................."
                        << std::endl;
+    return 357;
   };
 
   auto deferredTime = 4s;
-  deferredThreadScheduler<defaultFun> dts {"voidFoo"};
-  dts.registerThread(voidFoo);
+  deferredThreadScheduler<threadResultType, defaultFun> dts {"intFoo"};
+  dts.registerThread(intFoo);
 
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::NotValid));
@@ -163,26 +177,33 @@ TEST(deferredThreadScheduler, test_2_1)
             << std::hex << dts.getThreadId() << std::dec
             << " ] to run..."
             << std::endl;
-  dts.wait();
 
+  auto [threadState, threadResult] = dts.wait();
+
+  ASSERT_EQ(357, threadResult);
+  ASSERT_EQ(dts.getThreadState(),
+            threadState);
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::Run));
   ASSERT_EQ(threadArg, "Hello World... ");
 }
 
-void voidFooGlobal();
-void voidFooGlobal()
+using threadGlobalResultType = int;
+threadGlobalResultType intFooGlobal();
+threadGlobalResultType intFooGlobal()
 {
   utilities::pclog{} << "[ " << __func__ << " ] "
-                     << "voidFooGlobal() running................................."
+                     << "intFooGlobal() running................................."
                      << std::endl;
+  return 862;
 };
 
 TEST(deferredThreadScheduler, test_3)
 {
+  using threadResultType = threadGlobalResultType;
   auto deferredTime = 1s;
-  deferredThreadScheduler<void()> dts {"voidFooGlobal"};
-  dts.registerThread(voidFooGlobal);
+  deferredThreadScheduler<threadResultType, threadResultType()> dts {"intFooGlobal"};
+  dts.registerThread(intFooGlobal);
 
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::NotValid));
@@ -208,17 +229,22 @@ TEST(deferredThreadScheduler, test_3)
             << std::hex << dts.getThreadId() << std::dec
             << " ] to run..."
             << std::endl;
-  dts.wait();
 
+  auto [threadState, threadResult] = dts.wait();
+
+  ASSERT_EQ(862, threadResult);
+  ASSERT_EQ(dts.getThreadState(),
+            threadState);
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::Run));
 }
 
 TEST(deferredThreadScheduler, test_4)
 {
+  using threadResultType = threadGlobalResultType;
   auto deferredTime = 60s;
-  deferredThreadScheduler<void()> dts {"voidFooGlobal"};
-  dts.registerThread(voidFooGlobal);
+  deferredThreadScheduler<threadResultType, threadResultType()> dts {"intFooGlobal"};
+  dts.registerThread(intFooGlobal);
 
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::NotValid));
@@ -257,34 +283,37 @@ TEST(deferredThreadScheduler, test_4)
 // schedule 2 threads at the same time and tun them
 TEST(deferredThreadScheduler, test_5)
 {
-  using defaultFun = std::function<void()>;
+  using threadResultType = int;
+  using defaultFun = std::function<threadResultType()>;
   auto deferredTime = 3s;
   int i{1};
 
-  auto dtsPtr_1 = std::make_shared<deferredThreadScheduler<defaultFun>>("voidFoo");
-  dtsPtr_1.get()->registerThread([i]() -> void
+  auto dtsPtr_1 = std::make_shared<deferredThreadScheduler<threadResultType, defaultFun>>("intFoo");
+  dtsPtr_1.get()->registerThread([i]() -> threadResultType
                               {
                                 utilities::pclog{} << "[ " << __func__ << " ] "
                                           << i
-                                          << ": voidFoo() #1 running: "
+                                          << ": intFoo() #1 running: "
                                           << "................................."
                                           << std::endl;
+                                return 741;
                               });
   ++i;
-  auto dtsPtr_2 = std::make_shared<deferredThreadScheduler<defaultFun>>("voidFoo");
-  dtsPtr_2.get()->registerThread([i]() -> void
+  auto dtsPtr_2 = std::make_shared<deferredThreadScheduler<threadResultType, defaultFun>>("intFoo");
+  dtsPtr_2.get()->registerThread([i]() -> threadResultType
                               {
                                 utilities::pclog{} << "[ " << __func__ << " ] "
                                           << i
-                                          << ": voidFoo() #2 running: "
+                                          << ": intFoo() #2 running: "
                                           << "................................."
                                           << std::endl;
+                                return 963;
                               });
 
   dtsPtr_1.get()->runIn(deferredTime);
   dtsPtr_2.get()->runIn(deferredTime);
-  dtsPtr_1.get()->wait();
-  dtsPtr_2.get()->wait();
+  auto [threadState_1, threadResult_1] = dtsPtr_1.get()->wait();
+  auto [threadState_2, threadResult_2] = dtsPtr_2.get()->wait();
 
   std::cout << "[ " << __func__ << " ] "
           << "thread 1 "
@@ -301,6 +330,12 @@ TEST(deferredThreadScheduler, test_5)
           << " ]"
           << std::endl;
 
+  ASSERT_EQ(741, threadResult_1);
+  ASSERT_EQ(963, threadResult_2);
+  ASSERT_EQ(dtsPtr_1.get()->getThreadState(),
+            threadState_1);
+  ASSERT_EQ(dtsPtr_2.get()->getThreadState(),
+            threadState_2);
   ASSERT_EQ(dtsPtr_1.get()->getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::Run));
   ASSERT_EQ(dtsPtr_2.get()->getThreadState(),
@@ -310,22 +345,25 @@ TEST(deferredThreadScheduler, test_5)
 // schedule many threads at the same time and run them
 TEST(deferredThreadScheduler, test_6)
 {
-  using defaultFun = std::function<void()>;
-  using dtsSharedPtr = std::shared_ptr<deferredThreadScheduler<defaultFun>>;
+  using threadResultType = int;
+  using defaultFun = std::function<threadResultType()>;
+  using dtsSharedPtr = std::shared_ptr<deferredThreadScheduler<threadResultType, defaultFun>>;
   std::vector<dtsSharedPtr> v {};
   auto deferredTime = 3s;
 
   for(int i = 1; i <= 50; ++i)
   {
-    auto dtsPtr = makeSharedDeferredThreadScheduler<defaultFun>("voidFoo");
-    dtsPtr.get()->registerThread([i]() -> void
-                              {
-                                utilities::pclog{} << "[ " << __func__ << " ] "
-                                          << i
-                                          << ": voidFoo() running: "
-                                          << "................................."
-                                          << std::endl;
-                              });
+    auto dtsPtr = makeSharedDeferredThreadScheduler<threadResultType, defaultFun>("intFoo");
+
+    dtsPtr.get()->registerThread([i]() -> threadResultType
+                                 {
+                                   utilities::pclog{} << "[ " << __func__ << " ] "
+                                             << i
+                                             << ": intFoo() running: "
+                                             << "................................."
+                                             << std::endl;
+                                   return 154;
+                                 });
     v.push_back(dtsPtr);
 
     ASSERT_EQ(dtsPtr.get()->getThreadState(),
@@ -340,10 +378,10 @@ TEST(deferredThreadScheduler, test_6)
   }
   for (auto& dts : v)
   {
-    dts.get()->wait();
-  }
-  for (auto& dts : v)
-  {
+    auto [threadState, threadResult] = dts.get()->wait();
+    ASSERT_EQ(154, threadResult);
+    ASSERT_EQ(dts.get()->getThreadState(),
+              threadState);
     ASSERT_EQ(dts.get()->getThreadState(),
               static_cast<int>(deferredThreadSchedulerBase::threadState::Run));
   }
@@ -352,21 +390,23 @@ TEST(deferredThreadScheduler, test_6)
 // schedule many threads at the same time and cancel them
 TEST(deferredThreadScheduler, test_7)
 {
-  using defaultFun = std::function<void()>;
-  using dtsSharedPtr = std::shared_ptr<deferredThreadScheduler<defaultFun>>;
+  using threadResultType = int;
+  using defaultFun = std::function<threadResultType()>;
+  using dtsSharedPtr = std::shared_ptr<deferredThreadScheduler<threadResultType, defaultFun>>;
   std::vector<dtsSharedPtr> v {};
   auto deferredTime = 60s;
 
   for(int i = 1; i <= 10'000; ++i)
   {
-    auto dtsPtr = makeSharedDeferredThreadScheduler<defaultFun>("voidFoo");
-    dtsPtr.get()->registerThread([i]() -> void
+    auto dtsPtr = makeSharedDeferredThreadScheduler<threadResultType, defaultFun>("intFoo");
+    dtsPtr.get()->registerThread([i]() -> threadResultType
                               {
                                 utilities::pclog{} << "[ " << __func__ << " ] "
                                           << i
-                                          << ": voidFoo() running: "
+                                          << ": intFoo() running: "
                                           << "................................."
                                           << std::endl;
+                                return 0;
                               });
     v.push_back(dtsPtr);
 

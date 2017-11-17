@@ -7,6 +7,7 @@
 #ifndef DEFERRED_THREAD_SCHEDULER_H
 #define DEFERRED_THREAD_SCHEDULER_H
 #include <iostream>
+#include <type_traits>
 #include <string>
 #include <mutex>
 #include <future>
@@ -20,10 +21,18 @@ namespace deferredThreadScheduler
 {
 using namespace std::chrono_literals;
 
+using deafultThreadFunctionResult = int;
+using baseThreadStateType = int;
+
+template<typename RT = deafultThreadFunctionResult, typename... Args>
+using defaultFun = std::function<RT(Args... args)>;
+
+using threadResult = std::tuple<baseThreadStateType, deafultThreadFunctionResult>;
+
 class deferredThreadSchedulerBase
 {
 public:
-  enum class threadState : int { NotValid, Scheduled, Run, Running, Cancelled };
+  enum class threadState : baseThreadStateType { NotValid, Scheduled, Run, Running, Cancelled };
   static const std::string version;
   static const std::string& deferredThreadSchedulerVersion() noexcept;
 
@@ -46,18 +55,19 @@ public:
   void
   cancelThread() const noexcept;
 
+  // blocking until the thread terminates
   constexpr
-  auto
+  threadResult
   wait() const noexcept
   {
     return getThreadFuture().get();
   }
 
   constexpr
-  int
+  baseThreadStateType
   getThreadState() const noexcept
   {
-    return static_cast<int>(threadState_);
+    return static_cast<baseThreadStateType>(threadState_);
   }
 
   const
@@ -74,7 +84,7 @@ public:
 
   mutable threadState threadState_ {threadState::NotValid};
   mutable std::thread::id threadId_ {};
-  mutable std::shared_future<int> threadFuture_ {};
+  mutable std::shared_future<threadResult> threadFuture_ {};
 
   void
   setThreadState(const threadState& threadState) const noexcept;
@@ -87,20 +97,18 @@ public:
   }
 
   const
-  std::shared_future<int>&
+  std::shared_future<threadResult>&
   getThreadFuture() const noexcept;
 
   void
   setThreadId() const noexcept;
 };  // class deferredThreadSchedulerBase
 
-using defaultFun = std::function<void()>;
-
-template <typename F = defaultFun>
+template <typename RT = deafultThreadFunctionResult, typename F = defaultFun<RT>>
 class deferredThreadScheduler final : public deferredThreadSchedulerBase
 {
  private:
-  mutable std::function<int(const std::chrono::seconds)> f_ {};
+  mutable std::function<threadResult(const std::chrono::seconds)> f_ {};
 
  public:
   // we don't want these objects allocated on the heap
@@ -126,8 +134,9 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
     // NOTE:
     //   - f MUST be captured by value; if passed by reference the same lambda
     //     will be defined in all object instances created
-    f_ = [this, f](const std::chrono::seconds deferredTimeSeconds) noexcept(false) -> int
+    f_ = [this, f](const std::chrono::seconds deferredTimeSeconds) noexcept(false) -> threadResult
     {
+      RT result {};
       setThreadId();
 
       std::unique_lock<std::mutex> lk(cv_m_);
@@ -138,12 +147,12 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
         if ( threadState::Scheduled == getThreadState_() )
         {
           // run thread function
-          setThreadState(threadState::Running),
-          f(),
+          setThreadState(threadState::Running);
+          result = f();
           setThreadState(threadState::Run);
         }
       }
-      return getThreadState();
+      return std::make_tuple(getThreadState(), result);
     };    
   }
 
@@ -162,8 +171,8 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
 ////////////////////////////////////////////////////////////////////////////////
 // factory
 
-template <typename F>
-using deferredThreadSchedulerUniquePtr = std::unique_ptr<deferredThreadScheduler<F>>;
+template <typename T, typename F>
+using deferredThreadSchedulerUniquePtr = std::unique_ptr<deferredThreadScheduler<T, F>>;
 
 // create an object of type T and return a std::unique_ptr to it
 template <typename T, typename... Args>
@@ -173,15 +182,15 @@ createUniquePtr(Args&&... args) -> std::unique_ptr<T>
   return std::make_unique<T>(args...);
 }
 
-template <typename F>
-deferredThreadSchedulerUniquePtr<F>
+template <typename T, typename F>
+deferredThreadSchedulerUniquePtr<T, F>
 makeUniqueDeferredThreadScheduler(const std::string& threadName) noexcept
 {
-  return createUniquePtr<deferredThreadScheduler<F>>(threadName);
+  return createUniquePtr<deferredThreadScheduler<T, F>>(threadName);
 }
 ////////////////////////////////////////////////////////////////////////////////
-template <typename F>
-using deferredThreadSchedulerSharedPtr = std::shared_ptr<deferredThreadScheduler<F>>;
+template <typename T, typename F>
+using deferredThreadSchedulerSharedPtr = std::shared_ptr<deferredThreadScheduler<T, F>>;
 
 // create an object of type T and return a std::shared_ptr to it
 template <typename T, typename... Args>
@@ -191,11 +200,11 @@ createSharedPtr(Args&&... args) -> std::shared_ptr<T>
   return std::make_shared<T>(args...);
 }
 
-template <typename F>
-deferredThreadSchedulerSharedPtr<F>
+template <typename T, typename F>
+deferredThreadSchedulerSharedPtr<T, F>
 makeSharedDeferredThreadScheduler(const std::string& threadName) noexcept
 {
-  return createSharedPtr<deferredThreadScheduler<F>>(threadName);
+  return createSharedPtr<deferredThreadScheduler<T, F>>(threadName);
 }
 }  // namespace deferredThreadScheduler
 #endif /* DEFERRED_THREAD_SCHEDULER_H */

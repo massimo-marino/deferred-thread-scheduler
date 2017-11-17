@@ -50,6 +50,12 @@ deferredThreadSchedulerBase::cancelThread() const noexcept
   cv_.notify_one();
 }
 
+void
+deferredThreadSchedulerBase::setThreadId() const noexcept
+{
+  threadId_ = std::this_thread::get_id();
+}
+
 const
 std::thread::id
 deferredThreadSchedulerBase::getThreadId() const noexcept
@@ -64,16 +70,10 @@ deferredThreadSchedulerBase::setThreadState(const threadState& threadState) cons
 }
 
 const
-std::shared_future<int>&
+std::shared_future<threadResult>&
 deferredThreadSchedulerBase::getThreadFuture() const noexcept
 {
   return threadFuture_;
-}
-
-void
-deferredThreadSchedulerBase::setThreadId() const noexcept
-{
-  threadId_ = std::this_thread::get_id();
 }
 
 }  // namespace deferredThreadScheduler
