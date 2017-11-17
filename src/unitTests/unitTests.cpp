@@ -27,8 +27,8 @@ TEST(deferredThreadScheduler, deferredThreadSchedulerVersion)
 TEST(deferredThreadScheduler, test_1)
 {
   using threadResultType = int;
-  using defaultFun = std::function<threadResultType()>;
-  defaultFun intFoo = []() -> threadResultType
+  using threadFun = std::function<threadResultType()>;
+  threadFun intFoo = []() -> threadResultType
   {
     utilities::pclog{} << "[ " << __func__ << " ] "
                        << "intFoo() running................................."
@@ -37,7 +37,7 @@ TEST(deferredThreadScheduler, test_1)
   };
 
   auto deferredTime = 5s;
-  deferredThreadScheduler<threadResultType, defaultFun> dts {"intFoo"};
+  deferredThreadScheduler<threadResultType, threadFun> dts {"intFoo"};
   dts.registerThread(intFoo);
 
   ASSERT_EQ(dts.getThreadState(),
@@ -80,8 +80,8 @@ TEST(deferredThreadScheduler, test_2)
   std::string threadArg {"Hello World... "};
 
   using threadResultType = int;
-  using defaultFun = std::function<threadResultType()>;
-  defaultFun intFoo = [&threadArg] () -> threadResultType
+  using threadFun = std::function<threadResultType()>;
+  threadFun intFoo = [&threadArg] () -> threadResultType
   {
     threadArg += "from intFoo()!!!";
     utilities::pclog{} << "[ " << __func__ << " ] "
@@ -93,7 +93,7 @@ TEST(deferredThreadScheduler, test_2)
   };
 
   auto deferredTime = 3s;
-  deferredThreadScheduler<threadResultType, defaultFun> dts {"intFoo"};
+  deferredThreadScheduler<threadResultType, threadFun> dts {"intFoo"};
   dts.registerThread(intFoo);
 
   ASSERT_EQ(dts.getThreadState(),
@@ -137,8 +137,8 @@ TEST(deferredThreadScheduler, test_2_1)
   std::string threadArg {"Hello World... "};
 
   using threadResultType = int;
-  using defaultFun = std::function<threadResultType()>;
-  defaultFun intFoo = [threadArg] () mutable -> threadResultType
+  using threadFun = std::function<threadResultType()>;
+  threadFun intFoo = [threadArg] () mutable -> threadResultType
   {
     threadArg += "from intFoo()!!!";
     utilities::pclog{} << "[ " << __func__ << " ] "
@@ -150,7 +150,7 @@ TEST(deferredThreadScheduler, test_2_1)
   };
 
   auto deferredTime = 4s;
-  deferredThreadScheduler<threadResultType, defaultFun> dts {"intFoo"};
+  deferredThreadScheduler<threadResultType, threadFun> dts {"intFoo"};
   dts.registerThread(intFoo);
 
   ASSERT_EQ(dts.getThreadState(),
@@ -284,11 +284,11 @@ TEST(deferredThreadScheduler, test_4)
 TEST(deferredThreadScheduler, test_5)
 {
   using threadResultType = int;
-  using defaultFun = std::function<threadResultType()>;
+  using threadFun = std::function<threadResultType()>;
   auto deferredTime = 3s;
   int i{1};
 
-  auto dtsPtr_1 = std::make_shared<deferredThreadScheduler<threadResultType, defaultFun>>("intFoo");
+  auto dtsPtr_1 = std::make_shared<deferredThreadScheduler<threadResultType, threadFun>>("intFoo");
   dtsPtr_1.get()->registerThread([i]() -> threadResultType
                               {
                                 utilities::pclog{} << "[ " << __func__ << " ] "
@@ -299,7 +299,7 @@ TEST(deferredThreadScheduler, test_5)
                                 return 741;
                               });
   ++i;
-  auto dtsPtr_2 = std::make_shared<deferredThreadScheduler<threadResultType, defaultFun>>("intFoo");
+  auto dtsPtr_2 = std::make_shared<deferredThreadScheduler<threadResultType, threadFun>>("intFoo");
   dtsPtr_2.get()->registerThread([i]() -> threadResultType
                               {
                                 utilities::pclog{} << "[ " << __func__ << " ] "
@@ -346,14 +346,14 @@ TEST(deferredThreadScheduler, test_5)
 TEST(deferredThreadScheduler, test_6)
 {
   using threadResultType = int;
-  using defaultFun = std::function<threadResultType()>;
-  using dtsSharedPtr = std::shared_ptr<deferredThreadScheduler<threadResultType, defaultFun>>;
+  using threadFun = std::function<threadResultType()>;
+  using dtsSharedPtr = std::shared_ptr<deferredThreadScheduler<threadResultType, threadFun>>;
   std::vector<dtsSharedPtr> v {};
   auto deferredTime = 3s;
 
   for(int i = 1; i <= 50; ++i)
   {
-    auto dtsPtr = makeSharedDeferredThreadScheduler<threadResultType, defaultFun>("intFoo");
+    auto dtsPtr = makeSharedDeferredThreadScheduler<threadResultType, threadFun>("intFoo");
 
     dtsPtr.get()->registerThread([i]() -> threadResultType
                                  {
@@ -391,14 +391,14 @@ TEST(deferredThreadScheduler, test_6)
 TEST(deferredThreadScheduler, test_7)
 {
   using threadResultType = int;
-  using defaultFun = std::function<threadResultType()>;
-  using dtsSharedPtr = std::shared_ptr<deferredThreadScheduler<threadResultType, defaultFun>>;
+  using threadFun = std::function<threadResultType()>;
+  using dtsSharedPtr = std::shared_ptr<deferredThreadScheduler<threadResultType, threadFun>>;
   std::vector<dtsSharedPtr> v {};
   auto deferredTime = 60s;
 
   for(int i = 1; i <= 10'000; ++i)
   {
-    auto dtsPtr = makeSharedDeferredThreadScheduler<threadResultType, defaultFun>("intFoo");
+    auto dtsPtr = makeSharedDeferredThreadScheduler<threadResultType, threadFun>("intFoo");
     dtsPtr.get()->registerThread([i]() -> threadResultType
                               {
                                 utilities::pclog{} << "[ " << __func__ << " ] "
@@ -432,6 +432,72 @@ TEST(deferredThreadScheduler, test_7)
   }
 }
 
+TEST(deferredThreadScheduler, test_8)
+{
+  using threadResultType = std::string;
+  using threadFun = std::function<threadResultType(const std::string&, const std::string&)>;
+
+  std::string s1 {"Hello "};
+  std::string s2 {"World!!!"};
+
+  threadFun concatStrings = [](const std::string& str1, const std::string& str2) -> threadResultType
+                            {
+                              return str1 + str2;
+                            };
+  auto deferredTime = 3s;
+  deferredThreadScheduler<threadResultType, threadFun> dts {"concatStrings"};
+  dts.registerThread(concatStrings, s1, s2);
+
+  ASSERT_EQ(dts.getThreadState(),
+          static_cast<int>(deferredThreadSchedulerBase::threadState::NotValid));
+
+  dts.runIn(deferredTime);
+
+  ASSERT_EQ(dts.getThreadState(),
+            static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled));
+
+  auto [threadState, threadResult] = dts.wait();
+
+  ASSERT_EQ(threadState,
+            dts.getThreadState());
+  ASSERT_EQ(threadState,
+            static_cast<int>(deferredThreadSchedulerBase::threadState::Run));
+  ASSERT_EQ("Hello World!!!",
+            threadResult);
+}
+
+TEST(deferredThreadScheduler, test_9)
+{
+  using threadResultType = std::string;
+  using threadFun = std::function<threadResultType(const std::string&, const std::string&)>;
+
+  std::string s1 {"Hello "};
+  std::string s2 {"World!!!"};
+
+  threadFun concatStrings = [](const std::string& str1, const std::string& str2) -> threadResultType
+                            {
+                              return str1 + str2;
+                            };
+  auto deferredTime = 0s;
+  deferredThreadScheduler<threadResultType, threadFun> dts {"concatStrings", concatStrings, s1, s2};
+
+  ASSERT_EQ(dts.getThreadState(),
+          static_cast<int>(deferredThreadSchedulerBase::threadState::NotValid));
+
+  dts.runIn(deferredTime);
+
+  ASSERT_EQ(dts.getThreadState(),
+            static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled));
+
+  auto [threadState, threadResult] = dts.wait();
+
+  ASSERT_EQ(threadState,
+            dts.getThreadState());
+  ASSERT_EQ(threadState,
+            static_cast<int>(deferredThreadSchedulerBase::threadState::Run));
+  ASSERT_EQ("Hello World!!!",
+            threadResult);
+}
 ////////////////////////////////////////////////////////////////////////////////
 #pragma clang diagnostic pop
 // END: ignore the warnings when compiled with clang up to here

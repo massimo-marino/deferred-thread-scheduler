@@ -9,6 +9,7 @@
 #include <iostream>
 #include <type_traits>
 #include <string>
+#include <tuple>
 #include <mutex>
 #include <future>
 #include <thread>
@@ -25,9 +26,7 @@ using deafultThreadFunctionResult = int;
 using baseThreadStateType = int;
 
 template<typename RT = deafultThreadFunctionResult, typename... Args>
-using defaultFun = std::function<RT(Args... args)>;
-
-using threadResult = std::tuple<baseThreadStateType, deafultThreadFunctionResult>;
+using defaulThreadFun = std::function<RT(const Args&... args)>;
 
 class deferredThreadSchedulerBase
 {
@@ -55,14 +54,6 @@ public:
   void
   cancelThread() const noexcept;
 
-  // blocking until the thread terminates
-  constexpr
-  threadResult
-  wait() const noexcept
-  {
-    return getThreadFuture().get();
-  }
-
   constexpr
   baseThreadStateType
   getThreadState() const noexcept
@@ -83,8 +74,9 @@ public:
   mutable std::mutex cv_m_ {};
 
   mutable threadState threadState_ {threadState::NotValid};
+  // unused: for padding only
+  [[maybe_unused]] const char dummy_ [4] {};
   mutable std::thread::id threadId_ {};
-  mutable std::shared_future<threadResult> threadFuture_ {};
 
   void
   setThreadState(const threadState& threadState) const noexcept;
@@ -96,20 +88,27 @@ public:
     return threadState_;
   }
 
-  const
-  std::shared_future<threadResult>&
-  getThreadFuture() const noexcept;
-
   void
   setThreadId() const noexcept;
 };  // class deferredThreadSchedulerBase
 
-template <typename RT = deafultThreadFunctionResult, typename F = defaultFun<RT>>
+template <typename RT = deafultThreadFunctionResult, typename F = defaulThreadFun<RT>>
 class deferredThreadScheduler final : public deferredThreadSchedulerBase
 {
+ public:
+  using threadResult = std::tuple<baseThreadStateType, RT>;
+
  private:
   mutable std::function<threadResult(const std::chrono::seconds)> f_ {};
+  mutable std::shared_future<threadResult> threadFuture_ {};
 
+  const
+  std::shared_future<threadResult>&
+  getThreadFuture() const noexcept
+  {
+    return threadFuture_;
+  }
+  
  public:
   // we don't want these objects allocated on the heap
   void* operator new(std::size_t) = delete;
@@ -127,23 +126,26 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
   deferredThreadSchedulerBase(threadName)
   {}
 
+  template <typename... Args>
   explicit
   deferredThreadScheduler(const std::string& threadName,
-                          const F& f) noexcept
+                          const F& f,
+                          const Args&... args) noexcept
   :
   deferredThreadSchedulerBase(threadName)
   {
-    registerThread(f);
+    registerThread(f, args...);
   }
-    
+
+  template <typename... Args>
   void
-  registerThread(const F& f) const noexcept
+  registerThread(const F& f, const Args&... args) const noexcept
   {
     // create the closure
     // NOTE:
     //   - f MUST be captured by value; if passed by reference the same lambda
     //     will be defined in all object instances created
-    f_ = [this, f](const std::chrono::seconds deferredTimeSeconds) noexcept(false) -> threadResult
+    f_ = [this, f, &args...](const std::chrono::seconds deferredTimeSeconds) noexcept(false) -> threadResult
     {
       RT result {};
       setThreadId();
@@ -157,7 +159,7 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
         {
           // run thread function
           setThreadState(threadState::Running);
-          result = f();
+          result = f(args...);
           setThreadState(threadState::Run);
         }
       }
@@ -174,6 +176,14 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
 
     // allow chain calls
     return this;
+  }
+  
+  // blocking until the thread terminates
+  constexpr
+  threadResult
+  wait() const noexcept
+  {
+    return getThreadFuture().get();
   }
 };  // class deferredThreadScheduler
 

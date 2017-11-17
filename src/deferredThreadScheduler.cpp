@@ -69,13 +69,6 @@ deferredThreadSchedulerBase::setThreadState(const threadState& threadState) cons
   threadState_ = threadState; 
 }
 
-const
-std::shared_future<threadResult>&
-deferredThreadSchedulerBase::getThreadFuture() const noexcept
-{
-  return threadFuture_;
-}
-
 }  // namespace deferredThreadScheduler
 ////////////////////////////////////////////////////////////////////////////////
 #pragma clang diagnostic pop
