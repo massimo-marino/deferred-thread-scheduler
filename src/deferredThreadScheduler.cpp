@@ -35,19 +35,22 @@ deferredThreadSchedulerBase::getThreadName() const noexcept
   return threadName_;
 }
 
-void
+bool
 deferredThreadSchedulerBase::cancelThread() const noexcept
 {
   {
     std::unique_lock<std::mutex> lk(cv_m_);
     if ( (threadState::NotValid != getThreadState_()) &&
+         (threadState::Registered != getThreadState_()) &&
          (threadState::Scheduled != getThreadState_()) )
     {
-      return;
+      // thread cannot be canceled when not possible
+      return false;
     }
-    setThreadState(threadState::Cancelled);
+    setThreadState(threadState::Canceled);
   }
   cv_.notify_one();
+  return true;
 }
 
 void

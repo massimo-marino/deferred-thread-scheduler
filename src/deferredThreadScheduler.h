@@ -30,7 +30,15 @@ using defaulThreadFun = std::function<RT(const Args&... args)>;
 class deferredThreadSchedulerBase
 {
 public:
-  enum class threadState : baseThreadStateType { NotValid, Scheduled, Run, Running, Cancelled };
+  enum class threadState : baseThreadStateType
+  {
+    NotValid,
+    Registered,
+    Scheduled,
+    Running,
+    Run,
+    Canceled
+  };
   static const std::string version;
   static const std::string& deferredThreadSchedulerVersion() noexcept;
 
@@ -50,7 +58,7 @@ public:
   std::string&
   getThreadName() const noexcept;
 
-  void
+  bool
   cancelThread() const noexcept;
 
   constexpr
@@ -135,48 +143,54 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
   }
 
   template <typename... Args>
-  auto
+  auto&
   registerThread(const F& f, Args&&... args) const noexcept
   {
-    // create the closure
-    // NOTE:
-    //   - f MUST be captured by value; if passed by reference the same lambda
-    //     will be defined in all object instances created
-    f_ = [this, f, &args...]
-         (const std::chrono::seconds& deferredTimeSeconds) noexcept(false) -> threadResult const
-         {
-           RT result {};
-
-           setThreadId();
-
-           std::unique_lock<std::mutex> lk(cv_m_);
-           // wait on the condition variable until timeout or notification of cancellation
-           std::cv_status r = cv_.wait_for(lk, deferredTimeSeconds);
-           if ( std::cv_status::timeout == r )
+    if ( threadState::NotValid == getThreadState_() )
+    {
+      // create the closure
+      // NOTE:
+      //   - f MUST be captured by value; if passed by reference the same lambda
+      //     will be defined in all object instances created
+      f_ = [this, f, &args...]
+           (const std::chrono::seconds& deferredTimeSeconds) noexcept(false) -> threadResult const
            {
-             if ( threadState::Scheduled == getThreadState_() )
+             RT result {};
+
+             setThreadId();
+
+             std::unique_lock<std::mutex> lk(cv_m_);
+             // wait on the condition variable until timeout or notification of cancellation
+             std::cv_status r = cv_.wait_for(lk, deferredTimeSeconds);
+             if ( std::cv_status::timeout == r )
              {
-               // run thread function
-               setThreadState(threadState::Running);
-               result = f(std::forward<Args>(args)...);
-               setThreadState(threadState::Run);
+               if ( threadState::Scheduled == getThreadState_() )
+               {
+                 // run thread function
+                 setThreadState(threadState::Running);
+                 result = f(std::forward<Args>(args)...);
+                 setThreadState(threadState::Run);
+               }
              }
-           }
-           return std::make_tuple(getThreadState(), result);
-         };
+             return std::make_tuple(getThreadState(), result);
+           };
+      setThreadState(threadState::Registered);
+    }
     // allow chain calls
-    return this;
+    return *this;
   }
 
-  auto
+  auto&
   runIn(const std::chrono::seconds& deferredTimeSeconds) const noexcept
   {
-    // run the closure async
-    threadFuture_ = std::async(std::launch::async, f_, deferredTimeSeconds);
-    setThreadState(threadState::Scheduled);
-
+    if ( threadState::Registered == getThreadState_() )
+    {
+      // run the closure async
+      threadFuture_ = std::async(std::launch::async, f_, deferredTimeSeconds);
+      setThreadState(threadState::Scheduled);
+    }
     // allow chain calls
-    return this;
+    return *this;
   }
   
   // blocking until the thread terminates
@@ -184,7 +198,13 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
   threadResult
   wait() const noexcept
   {
-    return getThreadFuture().get();
+    if ( (threadState::Scheduled == getThreadState_()) ||
+         (threadState::Running == getThreadState_()) ||
+         (threadState::Run == getThreadState_()) )
+    {
+      return getThreadFuture().get();
+    }
+    return std::make_tuple(getThreadState(), RT{});
   }
 };  // class deferredThreadScheduler
 

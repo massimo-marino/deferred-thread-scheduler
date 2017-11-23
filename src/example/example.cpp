@@ -29,18 +29,18 @@ auto main() -> int
                               return str1 + str2;
                             };
 
-  // create an object for the deferred thread scheduler
+  // create an object for the deferred thread scheduler and register the thread
   deferredThreadScheduler::deferredThreadScheduler<threadResultType, threadFun> dts {"concatStrings", concatStrings, s1, s2};
 
-  if ( static_cast<int>(deferredThreadScheduler::deferredThreadSchedulerBase::threadState::NotValid) == dts.getThreadState() )
+  if ( static_cast<int>(deferredThreadScheduler::deferredThreadSchedulerBase::threadState::Registered) == dts.getThreadState() )
   {
     std::cout << "[" << __func__ << "] "
-              << "NotValid: OK\n";
+              << "Registered: OK\n";
   }
   else
   {
     std::cout << "[" << __func__ << "] "
-              << "NotValid: NOT OK\n";
+              << "Registered: NOT OK\n";
   }
 
   // the deferred time in seconds
