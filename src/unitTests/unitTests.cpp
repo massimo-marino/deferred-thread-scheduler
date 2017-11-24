@@ -351,17 +351,13 @@ TEST(deferredThreadScheduler, test_6)
   using dtsSharedPtr = std::shared_ptr<deferredThreadScheduler<threadResultType, threadFun>>;
   std::vector<dtsSharedPtr> v {};
   auto deferredTime = 3s;
+  const int numThreads = 10'000;
 
-  for(int i = 1; i <= 50; ++i)
+  for(int i = 1; i <= numThreads; ++i)
   {
     auto dtsPtr = makeSharedDeferredThreadScheduler<threadResultType, threadFun>("intFoo");
     dtsPtr.get()->registerThread([i]() noexcept -> threadResultType
                                  {
-                                   utilities::pclog{} << "[ " << __func__ << " ] "
-                                             << i
-                                             << ": intFoo() running: "
-                                             << "................................."
-                                             << std::endl;
                                    return 154;
                                  });
     v.push_back(dtsPtr);
@@ -369,6 +365,7 @@ TEST(deferredThreadScheduler, test_6)
     ASSERT_EQ(dtsPtr.get()->getThreadState(),
               static_cast<int>(deferredThreadSchedulerBase::threadState::Registered));
   }
+  ASSERT_EQ(numThreads, v.size());
   for (auto& dts : v)
   {
     dts.get()->runIn(deferredTime);
@@ -395,8 +392,9 @@ TEST(deferredThreadScheduler, test_7)
   using dtsSharedPtr = std::shared_ptr<deferredThreadScheduler<threadResultType, threadFun>>;
   std::vector<dtsSharedPtr> v {};
   auto deferredTime = 60s;
+  const int numThreads = 10'000;
 
-  for(int i = 1; i <= 10'000; ++i)
+  for(int i = 1; i <= numThreads; ++i)
   {
     auto dtsPtr = makeSharedDeferredThreadScheduler<threadResultType, threadFun>("intFoo");
     dtsPtr.get()->registerThread([i]() noexcept -> threadResultType
@@ -413,6 +411,7 @@ TEST(deferredThreadScheduler, test_7)
     ASSERT_EQ(dtsPtr.get()->getThreadState(),
               static_cast<int>(deferredThreadSchedulerBase::threadState::Registered));
   }
+  ASSERT_EQ(numThreads, v.size());
   for (auto& dts : v)
   {
     dts.get()->runIn(deferredTime);

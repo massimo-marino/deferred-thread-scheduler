@@ -15,7 +15,9 @@ namespace deferredThreadScheduler
 {
 std::string const deferredThreadSchedulerBase::version = "1.0.0";
 
-const std::string& deferredThreadSchedulerBase::deferredThreadSchedulerVersion () noexcept
+const
+std::string&
+deferredThreadSchedulerBase::deferredThreadSchedulerVersion () noexcept
 {
   return version;
 }

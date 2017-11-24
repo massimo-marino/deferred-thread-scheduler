@@ -115,7 +115,7 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
   {
     return threadFuture_;
   }
-  
+
  public:
   // we don't want these objects allocated on the heap
   void* operator new(std::size_t) = delete;
@@ -126,7 +126,7 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
 
   ~deferredThreadScheduler()
   {}
-  
+
   explicit
   deferredThreadScheduler(const std::string& threadName) noexcept
   :
@@ -192,7 +192,7 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
     // allow chain calls
     return *this;
   }
-  
+
   // blocking until the thread terminates
   constexpr
   threadResult
