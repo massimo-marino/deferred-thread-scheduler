@@ -53,12 +53,11 @@ $ cd src/example
 $ ./example
 
 [main] Deferred Thread Scheduler Example STARTED
-[main] NotValid: OK
+[main] Registered: OK
 [main] Scheduled: OK
 [main] Run: OK
 [main] Thread result: 'Hello World!!!'
-[main] TERMINATED
-
+[main] Deferred Thread Scheduler Example ENDED
 ```
 
 The example source code commented is here below to show how to use the class.
@@ -73,11 +72,12 @@ The example source code commented is here below to show how to use the class.
  */
 #include "../deferredThreadScheduler.h"
 #include <iostream>
-
-using namespace std::chrono_literals;
 ////////////////////////////////////////////////////////////////////////////////
 auto main() -> int
 {
+  using namespace std::chrono_literals;
+  using namespace deferredThreadScheduler;
+
   std::clog << "\n[" << __func__ << "] "
             << "Deferred Thread Scheduler Example STARTED\n";
 
@@ -96,18 +96,18 @@ auto main() -> int
                               return str1 + str2;
                             };
 
-  // create an object for the deferred thread scheduler
-  deferredThreadScheduler::deferredThreadScheduler<threadResultType, threadFun> dts {"concatStrings", concatStrings, s1, s2};
+  // create an object for the deferred thread scheduler and register the thread
+  deferredThreadScheduler<threadResultType, threadFun> dts {"concatStrings", concatStrings, s1, s2};
 
-  if ( static_cast<int>(deferredThreadScheduler::deferredThreadSchedulerBase::threadState::NotValid) == dts.getThreadState() )
+  if ( static_cast<int>(deferredThreadSchedulerBase::threadState::Registered) == dts.getThreadState() )
   {
     std::cout << "[" << __func__ << "] "
-              << "NotValid: OK\n";
+              << "Registered: OK\n";
   }
   else
   {
     std::cout << "[" << __func__ << "] "
-              << "NotValid: NOT OK\n";
+              << "Registered: NOT OK\n";
   }
 
   // the deferred time in seconds
@@ -115,7 +115,7 @@ auto main() -> int
   // schedule the thread to run in deferredTime seconds from now
   dts.runIn(deferredTime);
 
-  if ( static_cast<int>(deferredThreadScheduler::deferredThreadSchedulerBase::threadState::Scheduled) == dts.getThreadState() )
+  if ( static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled) == dts.getThreadState() )
   {
     std::cout << "[" << __func__ << "] "
               << "Scheduled: OK\n";
@@ -129,7 +129,7 @@ auto main() -> int
   // wait here the end of the thread
   auto [threadState, threadResult] = dts.wait();
 
-  if ( threadState == static_cast<int>(deferredThreadScheduler::deferredThreadSchedulerBase::threadState::Run) )
+  if ( threadState == static_cast<int>(deferredThreadSchedulerBase::threadState::Run) )
   {
     std::cout << "[" << __func__ << "] "
               << "Run: OK\n";
@@ -146,8 +146,10 @@ auto main() -> int
             << "'\n";
 
   std::clog << "[" << __func__ << "] "
-            << "TERMINATED\n"
+            << "Deferred Thread Scheduler Example ENDED\n"
             << std::endl;
+  
+  return 0;
 }  // main
 
 ```
