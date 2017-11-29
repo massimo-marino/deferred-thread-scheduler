@@ -25,9 +25,11 @@ deferredThreadSchedulerBase::deferredThreadSchedulerVersion () noexcept
 deferredThreadSchedulerBase::deferredThreadSchedulerBase(const std::string& threadName) noexcept
 :
 threadName_ (threadName)
-{}
+{
+  std::atomic_init(&threadId_, {});
+}
 
-deferredThreadSchedulerBase::~deferredThreadSchedulerBase()
+deferredThreadSchedulerBase::~deferredThreadSchedulerBase() noexcept(false)
 {}
 
 const
@@ -41,10 +43,11 @@ bool
 deferredThreadSchedulerBase::cancelThread() const noexcept
 {
   {
-    std::unique_lock<std::mutex> lk(cv_m_);
-    if ( (threadState::NotValid != getThreadState_()) &&
-         (threadState::Registered != getThreadState_()) &&
-         (threadState::Scheduled != getThreadState_()) )
+    std::unique_lock<std::mutex> lk(cv_mx_);
+    if ( auto ts_ = getThreadState_();
+         (threadState::NotValid != ts_) &&
+         (threadState::Registered != ts_) &&
+         (threadState::Scheduled != ts_) )
     {
       // thread cannot be canceled when not possible
       return false;
@@ -58,19 +61,20 @@ deferredThreadSchedulerBase::cancelThread() const noexcept
 void
 deferredThreadSchedulerBase::setThreadId() const noexcept
 {
-  threadId_ = std::this_thread::get_id();
+  threadId_.store(std::this_thread::get_id());
 }
 
 const
 std::thread::id
 deferredThreadSchedulerBase::getThreadId() const noexcept
 {
-  return threadId_;
+  return threadId_.load();
 }
 
 void
 deferredThreadSchedulerBase::setThreadState(const threadState& threadState) const noexcept
 {
+  std::lock_guard<std::mutex> lg(threadState_mx_);
   threadState_ = threadState; 
 }
 

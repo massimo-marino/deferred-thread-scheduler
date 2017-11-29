@@ -7,10 +7,9 @@
 
 #include "../deferredThreadScheduler.h"
 #include "concurrentLogging.h"
-#include <vector>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
-
+////////////////////////////////////////////////////////////////////////////////
 using namespace ::testing;
 using namespace ::deferredThreadScheduler;
 // BEGIN: ignore the warnings listed below when compiled with clang from here
@@ -41,14 +40,16 @@ TEST(deferredThreadScheduler, test_1)
 
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::Registered));
+  ASSERT_EQ(dts.isRegistered(), true);
 
   auto deferredTime = 5s;
   dts.runIn(deferredTime);
 
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled));
+  ASSERT_EQ(dts.isScheduled(), true);
 
-  while ( static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled) == dts.getThreadState() )
+  while ( dts.isScheduled() )
   {
     usleep(1'000);
   }
@@ -72,6 +73,8 @@ TEST(deferredThreadScheduler, test_1)
             threadState);
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::Run));
+  ASSERT_EQ(dts.isRun(), true);
+  ASSERT_EQ(dts.isRun(threadState), true);
 }
 
 // passing a thread argument by capturing it by reference
@@ -97,14 +100,16 @@ TEST(deferredThreadScheduler, test_2)
 
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::Registered));
+  ASSERT_EQ(dts.isRegistered(), true);
 
   auto deferredTime = 3s;
   dts.runIn(deferredTime);
 
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled));
+  ASSERT_EQ(dts.isScheduled(), true);
 
-  while ( static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled) == dts.getThreadState() )
+  while ( dts.isScheduled() )
   {
     usleep(1'000);
   }
@@ -128,6 +133,8 @@ TEST(deferredThreadScheduler, test_2)
             threadState);
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::Run));
+  ASSERT_EQ(dts.isRun(), true);
+  ASSERT_EQ(dts.isRun(threadState), true);
   ASSERT_EQ(threadArg, "Hello World... from intFoo()!!!");
 }
 
@@ -154,14 +161,16 @@ TEST(deferredThreadScheduler, test_2_1)
 
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::Registered));
+  ASSERT_EQ(dts.isRegistered(), true);
 
   auto deferredTime = 4s;
   dts.runIn(deferredTime);
 
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled));
+  ASSERT_EQ(dts.isScheduled(), true);
 
-  while ( static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled) == dts.getThreadState() )
+  while ( dts.isScheduled() )
   {
     usleep(1'000);
   }
@@ -185,6 +194,8 @@ TEST(deferredThreadScheduler, test_2_1)
             threadState);
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::Run));
+  ASSERT_EQ(dts.isRun(), true);
+  ASSERT_EQ(dts.isRun(threadState), true);
   ASSERT_EQ(threadArg, "Hello World... ");
 }
 
@@ -207,13 +218,15 @@ TEST(deferredThreadScheduler, test_3)
 
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::Registered));
+  ASSERT_EQ(dts.isRegistered(), true);
 
   dts.runIn(deferredTime);
 
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled));
+  ASSERT_EQ(dts.isScheduled(), true);
 
-  while ( static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled) == dts.getThreadState() )
+  while ( dts.isScheduled() )
   {
     usleep(1'000);
   }
@@ -237,6 +250,8 @@ TEST(deferredThreadScheduler, test_3)
             threadState);
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::Run));
+  ASSERT_EQ(dts.isRun(), true);
+  ASSERT_EQ(dts.isRun(threadState), true);
 }
 
 TEST(deferredThreadScheduler, test_4)
@@ -248,11 +263,13 @@ TEST(deferredThreadScheduler, test_4)
 
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::Registered));
+  ASSERT_EQ(dts.isRegistered(), true);
 
   dts.runIn(deferredTime);
 
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled));
+  ASSERT_EQ(dts.isScheduled(), true);
 
   usleep(5'000);
   std::cout << "[ " << __func__ << " ] "
@@ -264,20 +281,30 @@ TEST(deferredThreadScheduler, test_4)
             << dts.getThreadName()
             << " [ id 0x"
             << std::hex << dts.getThreadId() << std::dec
-            << " ] to run...";
+            << " ] to run ";
 
   // cancel the thread after 7 seconds; the test should take a bit more than
   // 7 seconds, not 60 seconds as requested at the declaration of dts
-  std::this_thread::sleep_for(7s);
+  for(int i {1}; i <= 70; ++i)
+  {
+    auto [threadState, threadResult] = dts.wait_for(100ms);
+    if ( dts.isRun(threadState) )
+    {
+      break;
+    }
+    std::cout << "." << std::flush;
+  }
   ASSERT_EQ(dts.getThreadState(),
           static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled));
+  ASSERT_EQ(dts.isScheduled(), true);
 
   auto result = dts.cancelThread();
 
   ASSERT_EQ(true, result);
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::Canceled));
-  std::cout << " Canceled."
+  ASSERT_EQ(dts.isCanceled(), true);
+  std::cout << " Thread canceled."
             << std::endl;
 }
 
@@ -313,6 +340,7 @@ TEST(deferredThreadScheduler, test_5)
 
   dtsPtr_1.get()->runIn(deferredTime);
   dtsPtr_2.get()->runIn(deferredTime);
+
   auto [threadState_1, threadResult_1] = dtsPtr_1.get()->wait();
   auto [threadState_2, threadResult_2] = dtsPtr_2.get()->wait();
 
@@ -341,6 +369,10 @@ TEST(deferredThreadScheduler, test_5)
             static_cast<int>(deferredThreadSchedulerBase::threadState::Run));
   ASSERT_EQ(dtsPtr_2.get()->getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::Run));
+  ASSERT_EQ(dtsPtr_1.get()->isRun(), true);
+  ASSERT_EQ(dtsPtr_2.get()->isRun(), true);
+  ASSERT_EQ(dtsPtr_1.get()->isRun(threadState_1), true);
+  ASSERT_EQ(dtsPtr_2.get()->isRun(threadState_2), true);
 }
 
 // schedule many threads at the same time and run them
@@ -358,12 +390,13 @@ TEST(deferredThreadScheduler, test_6)
     auto dtsPtr = makeSharedDeferredThreadScheduler<threadResultType, threadFun>("intFoo");
     dtsPtr.get()->registerThread([i]() noexcept -> threadResultType
                                  {
-                                   return 154;
+                                   return 42;
                                  });
     v.push_back(dtsPtr);
 
     ASSERT_EQ(dtsPtr.get()->getThreadState(),
               static_cast<int>(deferredThreadSchedulerBase::threadState::Registered));
+    ASSERT_EQ(dtsPtr.get()->isRegistered(), true);
   }
   ASSERT_EQ(numThreads, v.size());
   for (auto& dts : v)
@@ -372,15 +405,69 @@ TEST(deferredThreadScheduler, test_6)
 
     ASSERT_EQ(dts.get()->getThreadState(),
               static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled));
+    ASSERT_EQ(dts.get()->isScheduled(), true);
   }
   for (auto& dts : v)
   {
     auto [threadState, threadResult] = dts.get()->wait();
-    ASSERT_EQ(154, threadResult);
+    ASSERT_EQ(42, threadResult);
     ASSERT_EQ(dts.get()->getThreadState(),
               threadState);
     ASSERT_EQ(dts.get()->getThreadState(),
               static_cast<int>(deferredThreadSchedulerBase::threadState::Run));
+    ASSERT_EQ(dts.get()->isRun(), true);
+    ASSERT_EQ(dts.get()->isRun(threadState), true);
+  }
+}
+
+// schedule many threads with a deferred time of 0 seconds, and run them
+TEST(deferredThreadScheduler, test_6_1)
+{
+  using threadResultType = int;
+  using threadFun = std::function<threadResultType()>;
+  using dtsSharedPtr = std::shared_ptr<deferredThreadScheduler<threadResultType, threadFun>>;
+  std::vector<dtsSharedPtr> v {};
+  auto deferredTime = 0s;
+  const int numThreads = 10'000;
+
+  for(int i = 1; i <= numThreads; ++i)
+  {
+    auto dtsPtr = makeSharedDeferredThreadScheduler<threadResultType, threadFun>("intFoo");
+    dtsPtr.get()->registerThread([i]() noexcept -> threadResultType
+                                 {
+                                   return 42;
+                                 });
+    v.push_back(dtsPtr);
+
+    ASSERT_EQ(dtsPtr.get()->getThreadState(),
+              static_cast<int>(deferredThreadSchedulerBase::threadState::Registered));
+    ASSERT_EQ(dtsPtr.get()->isRegistered(), true);
+  }
+  ASSERT_EQ(numThreads, v.size());
+  for (auto& dts : v)
+  {
+    // since the deferred time is 0 seconds we should expect the thread status
+    // as either: scheduled, running, or run
+    dts.get()->runIn(deferredTime);
+
+    ASSERT_TRUE(dts.get()->getThreadState() == static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled) ||
+                dts.get()->getThreadState() == static_cast<int>(deferredThreadSchedulerBase::threadState::Running) ||
+                dts.get()->getThreadState() == static_cast<int>(deferredThreadSchedulerBase::threadState::Run) );
+
+    ASSERT_TRUE(dts.get()->isScheduled() == true ||
+                dts.get()->isRunning() == true ||
+                dts.get()->isRun() == true );
+  }
+  for (auto& dts : v)
+  {
+    auto [threadState, threadResult] = dts.get()->wait();
+    ASSERT_EQ(42, threadResult);
+    ASSERT_EQ(dts.get()->getThreadState(),
+              threadState);
+    ASSERT_EQ(dts.get()->getThreadState(),
+              static_cast<int>(deferredThreadSchedulerBase::threadState::Run));
+    ASSERT_EQ(dts.get()->isRun(), true);
+    ASSERT_EQ(dts.get()->isRun(threadState), true);
   }
 }
 
@@ -404,12 +491,13 @@ TEST(deferredThreadScheduler, test_7)
                                           << ": intFoo() running: "
                                           << "................................."
                                           << std::endl;
-                                return 0;
+                                return 42;
                               });
     v.push_back(dtsPtr);
 
     ASSERT_EQ(dtsPtr.get()->getThreadState(),
               static_cast<int>(deferredThreadSchedulerBase::threadState::Registered));
+    ASSERT_EQ(dtsPtr.get()->isRegistered(), true);
   }
   ASSERT_EQ(numThreads, v.size());
   for (auto& dts : v)
@@ -418,6 +506,7 @@ TEST(deferredThreadScheduler, test_7)
 
     ASSERT_EQ(dts.get()->getThreadState(),
               static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled));
+    ASSERT_EQ(dts.get()->isScheduled(), true);
   }
   // cancel the thread after 5 seconds; the test should take a bit more than
   // 5 seconds, not 60 seconds as requested at the declaration of dts
@@ -430,6 +519,7 @@ TEST(deferredThreadScheduler, test_7)
     ASSERT_EQ(true, result);
     ASSERT_EQ(dts.get()->getThreadState(),
               static_cast<int>(deferredThreadSchedulerBase::threadState::Canceled));
+    ASSERT_EQ(dts.get()->isCanceled(), true);
   }
 }
 
@@ -452,12 +542,14 @@ TEST(deferredThreadScheduler, test_8)
 
   ASSERT_EQ(dts.getThreadState(),
           static_cast<int>(deferredThreadSchedulerBase::threadState::Registered));
+  ASSERT_EQ(dts.isRegistered(), true);
 
   auto deferredTime = 3s;
   dts.runIn(deferredTime);
 
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled));
+  ASSERT_EQ(dts.isScheduled(), true);
 
   auto [threadState, threadResult] = dts.wait();
 
@@ -465,6 +557,8 @@ TEST(deferredThreadScheduler, test_8)
             dts.getThreadState());
   ASSERT_EQ(threadState,
             static_cast<int>(deferredThreadSchedulerBase::threadState::Run));
+  ASSERT_EQ(dts.isRun(), true);
+  ASSERT_EQ(dts.isRun(threadState), true);
   ASSERT_EQ("Hello World!!!",
             threadResult);
 }
@@ -487,12 +581,14 @@ TEST(deferredThreadScheduler, test_9)
 
   ASSERT_EQ(dts.getThreadState(),
           static_cast<int>(deferredThreadSchedulerBase::threadState::Registered));
+  ASSERT_EQ(dts.isRegistered(), true);
 
   auto deferredTime = 2s;
   dts.runIn(deferredTime);
 
   ASSERT_EQ(dts.getThreadState(),
             static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled));
+  ASSERT_EQ(dts.isScheduled(), true);
 
   auto [threadState, threadResult] = dts.wait();
 
@@ -500,6 +596,8 @@ TEST(deferredThreadScheduler, test_9)
             dts.getThreadState());
   ASSERT_EQ(threadState,
             static_cast<int>(deferredThreadSchedulerBase::threadState::Run));
+  ASSERT_EQ(dts.isRun(), true);
+  ASSERT_EQ(dts.isRun(threadState), true);
   ASSERT_EQ("Hello World!!!",
             threadResult);
 }
@@ -532,6 +630,8 @@ TEST(deferredThreadScheduler, test_10)
             dts.getThreadState());
   ASSERT_EQ(threadState,
             static_cast<int>(deferredThreadSchedulerBase::threadState::Run));
+  ASSERT_EQ(dts.isRun(), true);
+  ASSERT_EQ(dts.isRun(threadState), true);
   ASSERT_EQ("Hello World!!!",
             threadResult);
 }

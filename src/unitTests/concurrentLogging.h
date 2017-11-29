@@ -4,9 +4,7 @@
  *
  * Created on October 13, 2017, 8:27 AM
  */
-
-#ifndef CONCURRENTLOGGING_H
-#define CONCURRENTLOGGING_H
+#pragma once
 
 #include <iostream>
 #include <sstream>
@@ -42,5 +40,3 @@ struct pcerr : public std::stringstream
 };
 
 }  // namespace utilities
-
-#endif /* CONCURRENTLOGGING_H */
