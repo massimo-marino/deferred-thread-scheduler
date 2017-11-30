@@ -635,6 +635,76 @@ TEST(deferredThreadScheduler, test_10)
   ASSERT_EQ("Hello World!!!",
             threadResult);
 }
+
+// in this test an exception is thrown by the thread function 
+TEST(deferredThreadScheduler, test_11)
+{
+  {
+    // the result type of the thread function
+    using threadResultType = int;
+    // the thread function type/signature
+    using threadFun = std::function<threadResultType()>;
+
+    // the thread function
+    threadFun wellLoop = []() noexcept(false) -> threadResultType const
+                         {
+                           std::this_thread::sleep_for(1s);
+                           throw std::runtime_error("runtime error");
+                           return 0;
+                         };
+
+    // create an object for the deferred thread scheduler
+    deferredThreadScheduler<threadResultType, threadFun> dts {"wellLoop"};
+
+    // register the thread, schedule the thread to run in 2s from now
+    dts.registerThread(wellLoop).runIn(1s);
+    // wait the thread throws the exception
+    while ( false == dts.isExceptionThrown() )
+    {
+      auto [threadState, threadResult] = dts.wait_for();
+      std::cout << "." << std::flush;
+      std::this_thread::sleep_for(1s);
+    }
+    ASSERT_EQ(dts.isExceptionThrown(), true);
+    if ( true == dts.isExceptionThrown() )
+    {
+      std::cout << dts.getExceptionThrownMessage() << std::endl;
+    }
+  }
+}
+
+// in this test an exception is thrown by the thread function 
+TEST(deferredThreadScheduler, test_12)
+{
+  {
+    // the result type of the thread function
+    using threadResultType = int;
+    // the thread function type/signature
+    using threadFun = std::function<threadResultType()>;
+
+    // the thread function
+    threadFun wellLoop = []() noexcept(false) -> threadResultType const
+                         {
+                           std::this_thread::sleep_for(1s);
+                           throw std::runtime_error("runtime error");
+                           return 0;
+                         };
+
+    // create an object for the deferred thread scheduler
+    deferredThreadScheduler<threadResultType, threadFun> dts {"wellLoop"};
+
+    // register the thread, schedule the thread to run in 2s from now
+    dts.registerThread(wellLoop).runIn(1s);
+    // wait the thread throws the exception
+    auto [threadState, threadResult] = dts.wait();
+
+    ASSERT_EQ(dts.isExceptionThrown(), true);
+    if ( true == dts.isExceptionThrown() )
+    {
+      std::cout << dts.getExceptionThrownMessage() << std::endl;
+    }
+  }
+}
 ////////////////////////////////////////////////////////////////////////////////
 #pragma clang diagnostic pop
 // END: ignore the warnings when compiled with clang up to here

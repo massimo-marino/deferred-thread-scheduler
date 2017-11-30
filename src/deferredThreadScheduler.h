@@ -21,6 +21,17 @@ namespace deferredThreadScheduler
 {
 using namespace std::chrono_literals;
 
+// reallyAsync() from Scott Meyers' Effective Modern C++, pag.250
+template<typename F, typename... Ts>
+inline
+auto // C++14
+reallyAsync(F&& f, Ts&&... params)
+{
+  return std::async(std::launch::async,
+                    std::forward<F>(f),
+                    std::forward<Ts>(params)...);
+}
+
 using deafultThreadFunctionResult = int;
 using baseThreadStateType = int;
 
@@ -37,7 +48,8 @@ public:
     Scheduled,
     Running,
     Run,
-    Canceled
+    Canceled,
+    ExceptionThrown
   };
 
   static const std::string version;
@@ -99,6 +111,12 @@ public:
   {
     return static_cast<baseThreadStateType>(threadState::Canceled) == s;
   }
+  constexpr
+  bool
+  isExceptionThrown(const baseThreadStateType s) noexcept
+  {
+    return static_cast<baseThreadStateType>(threadState::ExceptionThrown) == s;
+  }
 
   constexpr
   bool
@@ -130,10 +148,23 @@ public:
   {
     return threadState::Canceled == getThreadState_();
   }
+  constexpr
+  bool
+  isExceptionThrown() const noexcept
+  {
+    return threadState::ExceptionThrown == getThreadState_();
+  }
 
   const
   std::thread::id
   getThreadId() const noexcept;
+
+  const
+  std::string
+  getExceptionThrownMessage() const noexcept
+  {
+    return exceptionThrownMessage_;
+  }
 
  protected:
   std::string threadName_ {};
@@ -146,11 +177,18 @@ public:
   // mutex associated to the thread state
   mutable std::mutex threadState_mx_ {};
   mutable threadState threadState_ {threadState::NotValid};
+  mutable std::atomic<std::thread::id> threadId_;
 
   // unused: for padding only
   [[maybe_unused]] const char dummy_ [4] {};
 
-  mutable std::atomic<std::thread::id> threadId_;
+  mutable std::string exceptionThrownMessage_ {};
+
+  void
+  setExceptionThrownMessage(const std::string& s) const noexcept
+  {
+    exceptionThrownMessage_ = s;
+  }
 
   void
   setThreadState(const threadState& threadState) const noexcept;
@@ -169,6 +207,10 @@ public:
 template <typename RT = deafultThreadFunctionResult, typename F = defaulThreadFun<RT>>
 class deferredThreadScheduler final : public deferredThreadSchedulerBase
 {
+  // to make things simpler the thread function must return a value
+  static_assert(!std::is_void<RT>::value,
+                "The return value of the thread function must not be void");
+
  public:
   using threadResult = std::tuple<baseThreadStateType, RT>;
 
@@ -253,7 +295,7 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
     {
       setThreadState(threadState::Scheduled);
       // run the closure async
-      threadFuture_ = std::async(std::launch::async, f_, deferredTimeSeconds);
+      threadFuture_ = reallyAsync(f_, deferredTimeSeconds);
     }
     // allow chain calls
     return *this;
@@ -278,9 +320,11 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
         // wait here the termination
         return getThreadFuture().get();
       }
-      catch (...)
+      catch (std::exception& e)
       {
-        throw;
+        setExceptionThrownMessage(e.what());
+        setThreadState(threadState::ExceptionThrown);
+        return std::make_tuple(getThreadState(), RT{});
       }
     }
     // if the thread is not in the right state then return here with default
@@ -291,7 +335,7 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
   // wait at most ms milliseconds for thread termination, then return no result
   // in case of time-out, otherwise return the result/future if the thread terminated
   threadResult
-  wait_for(const std::chrono::milliseconds& ms) const noexcept(false)
+  wait_for(const std::chrono::milliseconds& ms = 0ms) const noexcept(false)
   {
     auto ts = getThreadState();
     
@@ -309,9 +353,11 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
            // wait here the termination
           return getThreadFuture().get();
         }
-        catch (...)
+        catch (std::exception& e)
         {
-          throw;
+          setExceptionThrownMessage(e.what());
+          setThreadState(threadState::ExceptionThrown);
+          return std::make_tuple(getThreadState(), RT{});
         }
       }
     }
