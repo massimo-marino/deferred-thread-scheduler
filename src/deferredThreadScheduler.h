@@ -297,7 +297,7 @@ public:
   {
     // remove the entry for this thread from the static map
     std::unique_lock<std::mutex> lk(cancellationFlagsMx_);
-    return getCancellationFlags_ref(). erase(uk);
+    return getCancellationFlags_ref().erase(uk);
   }
 };  // class deferredThreadSchedulerBase
 

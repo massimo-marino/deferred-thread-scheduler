@@ -45,7 +45,7 @@ auto main() -> int
   }
 
   // the deferred time in seconds
-  auto deferredTime = 4s;
+  auto deferredTime {4s};
   // schedule the thread to run in deferredTime seconds from now
   dts.runIn(deferredTime);
 

@@ -29,7 +29,7 @@ TEST(deferredThreadScheduler, test_1)
 {
   using threadResultType = int;
   using threadFun = std::function<threadResultType()>;
-  threadFun intFoo = []() noexcept -> threadResultType
+  threadFun intFoo = []() noexcept(false) -> threadResultType
   {
     pclog{} << "[ " << __func__ << " ] "
             << "intFoo() running................................."
@@ -44,7 +44,7 @@ TEST(deferredThreadScheduler, test_1)
             static_cast<int>(deferredThreadSchedulerBase::threadState::Registered));
   ASSERT_EQ(dts.isRegistered(), true);
 
-  auto deferredTime = 5s;
+  auto deferredTime {5s};
   dts.runIn(deferredTime);
 
   ASSERT_EQ(dts.getThreadState(),
@@ -86,7 +86,7 @@ TEST(deferredThreadScheduler, test_2)
 
   using threadResultType = int;
   using threadFun = std::function<threadResultType()>;
-  threadFun intFoo = [&threadArg] () noexcept -> threadResultType
+  threadFun intFoo = [&threadArg]() noexcept(false) -> threadResultType
   {
     threadArg += "from intFoo()!!!";
     pclog{} << "[ " << __func__ << " ] "
@@ -104,7 +104,7 @@ TEST(deferredThreadScheduler, test_2)
             static_cast<int>(deferredThreadSchedulerBase::threadState::Registered));
   ASSERT_EQ(dts.isRegistered(), true);
 
-  auto deferredTime = 3s;
+  auto deferredTime {3s};
   dts.runIn(deferredTime);
 
   ASSERT_EQ(dts.getThreadState(),
@@ -147,7 +147,7 @@ TEST(deferredThreadScheduler, test_2_1)
 
   using threadResultType = int;
   using threadFun = std::function<threadResultType()>;
-  threadFun intFoo = [threadArg] () mutable noexcept -> threadResultType
+  threadFun intFoo = [threadArg]() mutable noexcept(false) -> threadResultType
   {
     threadArg += "from intFoo()!!!";
     pclog{} << "[ " << __func__ << " ] "
@@ -165,7 +165,7 @@ TEST(deferredThreadScheduler, test_2_1)
             static_cast<int>(deferredThreadSchedulerBase::threadState::Registered));
   ASSERT_EQ(dts.isRegistered(), true);
 
-  auto deferredTime = 4s;
+  auto deferredTime {4s};
   dts.runIn(deferredTime);
 
   ASSERT_EQ(dts.getThreadState(),
@@ -202,8 +202,8 @@ TEST(deferredThreadScheduler, test_2_1)
 }
 
 using threadGlobalResultType = int;
-threadGlobalResultType intFooGlobal() noexcept;
-threadGlobalResultType intFooGlobal() noexcept
+threadGlobalResultType intFooGlobal() noexcept(false);
+threadGlobalResultType intFooGlobal() noexcept(false)
 {
   pclog{} << "[ " << __func__ << " ] "
           << "intFooGlobal() running................................."
@@ -214,7 +214,7 @@ threadGlobalResultType intFooGlobal() noexcept
 TEST(deferredThreadScheduler, test_3)
 {
   using threadResultType = threadGlobalResultType;
-  auto deferredTime = 1s;
+  auto deferredTime {1s};
   deferredThreadScheduler<threadResultType, threadResultType()> dts {"intFooGlobal"};
   dts.registerThread(intFooGlobal);
 
@@ -259,7 +259,7 @@ TEST(deferredThreadScheduler, test_3)
 TEST(deferredThreadScheduler, test_4)
 {
   using threadResultType = threadGlobalResultType;
-  auto deferredTime = 60s;
+  auto deferredTime {60s};
   deferredThreadScheduler<threadResultType, threadResultType()> dts {"intFooGlobal"};
   dts.registerThread(intFooGlobal);
 
@@ -315,11 +315,11 @@ TEST(deferredThreadScheduler, test_5)
 {
   using threadResultType = int;
   using threadFun = std::function<threadResultType()>;
-  auto deferredTime = 3s;
-  int i{1};
+  auto deferredTime {3s};
+  int i {1};
 
   auto dtsPtr_1 = std::make_shared<deferredThreadScheduler<threadResultType, threadFun>>("intFoo");
-  dtsPtr_1.get()->registerThread([i]() noexcept -> threadResultType
+  dtsPtr_1.get()->registerThread([i]() noexcept(false) -> threadResultType
                               {
                                 pclog{} << "[ " << __func__ << " ] "
                                         << i
@@ -330,7 +330,7 @@ TEST(deferredThreadScheduler, test_5)
                               });
   ++i;
   auto dtsPtr_2 = std::make_shared<deferredThreadScheduler<threadResultType, threadFun>>("intFoo");
-  dtsPtr_2.get()->registerThread([i]() noexcept -> threadResultType
+  dtsPtr_2.get()->registerThread([i]() noexcept(false) -> threadResultType
                               {
                                 pclog{} << "[ " << __func__ << " ] "
                                         << i
@@ -384,13 +384,13 @@ TEST(deferredThreadScheduler, test_6)
   using threadFun = std::function<threadResultType()>;
   using dtsSharedPtr = std::shared_ptr<deferredThreadScheduler<threadResultType, threadFun>>;
   std::vector<dtsSharedPtr> v {};
-  auto deferredTime = 3s;
-  const int numThreads = 10'000;
+  auto deferredTime {3s};
+  const int numThreads {10'000};
 
-  for(int i = 1; i <= numThreads; ++i)
+  for(int i {1}; i <= numThreads; ++i)
   {
     auto dtsPtr = makeSharedDeferredThreadScheduler<threadResultType, threadFun>("intFoo");
-    dtsPtr.get()->registerThread([]() noexcept -> threadResultType
+    dtsPtr.get()->registerThread([]() noexcept(false) -> threadResultType
                                  {
                                    return 42;
                                  });
@@ -429,13 +429,13 @@ TEST(deferredThreadScheduler, test_6_1)
   using threadFun = std::function<threadResultType()>;
   using dtsSharedPtr = std::shared_ptr<deferredThreadScheduler<threadResultType, threadFun>>;
   std::vector<dtsSharedPtr> v {};
-  auto deferredTime = 0s;
-  const int numThreads = 10'000;
+  auto deferredTime {0s};
+  const int numThreads {10'000};
 
-  for(int i = 1; i <= numThreads; ++i)
+  for(int i {1}; i <= numThreads; ++i)
   {
     auto dtsPtr = makeSharedDeferredThreadScheduler<threadResultType, threadFun>("intFoo");
-    dtsPtr.get()->registerThread([]() noexcept -> threadResultType
+    dtsPtr.get()->registerThread([]() noexcept(false) -> threadResultType
                                  {
                                    return 42;
                                  });
@@ -480,13 +480,13 @@ TEST(deferredThreadScheduler, test_7)
   using threadFun = std::function<threadResultType()>;
   using dtsSharedPtr = std::shared_ptr<deferredThreadScheduler<threadResultType, threadFun>>;
   std::vector<dtsSharedPtr> v {};
-  auto deferredTime = 60s;
-  const int numThreads = 10'000;
+  auto deferredTime {60s};
+  const int numThreads {10'000};
 
-  for(int i = 1; i <= numThreads; ++i)
+  for(int i {1}; i <= numThreads; ++i)
   {
     auto dtsPtr = makeSharedDeferredThreadScheduler<threadResultType, threadFun>("intFoo");
-    dtsPtr.get()->registerThread([i]() noexcept -> threadResultType
+    dtsPtr.get()->registerThread([i]() noexcept(false) -> threadResultType
                               {
                                 pclog{} << "[ " << __func__ << " ] "
                                         << i
@@ -534,7 +534,7 @@ TEST(deferredThreadScheduler, test_8)
   std::string s2 {"World!!!"};
 
   threadFun concatStrings = [](const std::string& str1,
-                               const std::string& str2) noexcept -> threadResultType const
+                               const std::string& str2) noexcept(false) -> threadResultType const
                             {
                               return str1 + str2;
                             };
@@ -574,7 +574,7 @@ TEST(deferredThreadScheduler, test_9)
   std::string s2 {"World!!!"};
 
   threadFun concatStrings = [](const std::string& str1,
-                               const std::string& str2) noexcept -> threadResultType const
+                               const std::string& str2) noexcept(false) -> threadResultType const
                             {
                               return str1 + str2;
                             };
@@ -617,7 +617,7 @@ TEST(deferredThreadScheduler, test_10)
 
   // the thread function
   threadFun concatStrings = [](const std::string& str1,
-                               const std::string& str2) noexcept -> threadResultType const
+                               const std::string& str2) noexcept(false) -> threadResultType const
                             {
                               return str1 + str2;
                             };
@@ -744,9 +744,9 @@ TEST(deferredThreadScheduler, test_13)
     ASSERT_EQ(dts.isRunning(), true);
     deferredThreadSchedulerBase::listCancellationFlags(std::cout);
     std::cout << "exiting scope..." << std::flush;
+    // dts object is destroyed, and cancellation flag for the thread is set;
+    // since the thread checks the flag, it will terminate
   }
-  // dts object is destroyed, and cancellation flag for the thread is set;
-  // since the thread checks the flag, it will terminate
   auto [cfSize, cfSet, cfUnset] = deferredThreadSchedulerBase::listCancellationFlags(std::cout);
   ASSERT_EQ(0, cfSize);
   ASSERT_EQ(0, cfSet);
@@ -757,51 +757,62 @@ TEST(deferredThreadScheduler, test_13)
 // the scope so the dtor is called and the thread's cancellation flags are set
 TEST(deferredThreadScheduler, test_14)
 {
+  const unsigned int maxLoops {25};
+
+  for (unsigned int l {1}; l <= maxLoops; ++l)
   {
-    using threadResultType = int;
-    using threadFun = std::function<threadResultType()>;
-    using dtsSharedPtr = std::shared_ptr<deferredThreadScheduler<threadResultType, threadFun>>;
-    std::vector<dtsSharedPtr> v {};
-    auto deferredTime = 0s;
-    const int numThreads = 10'000;
-
-    for(int i = 1; i <= numThreads; ++i)
     {
-      auto dtsPtr = makeSharedDeferredThreadScheduler<threadResultType, threadFun>("intFoo");
-      dtsPtr.get()->registerThread([]() noexcept -> threadResultType
-                                   {
-                                     // safe cancellation point, use the macro
-                                     TERMINATE_ON_CANCELLATION(threadResultType)
-                                   } );
-      v.push_back(dtsPtr);
+      using threadResultType = int;
+      using threadFun = std::function<threadResultType()>;
+      using dtsSharedPtr = std::shared_ptr<deferredThreadScheduler<threadResultType, threadFun>>;
+      std::vector<dtsSharedPtr> v {};
+      auto deferredTime {0s};
+      const unsigned int numThreads {10'000};
 
-      ASSERT_EQ(dtsPtr.get()->getThreadState(),
-                static_cast<int>(deferredThreadSchedulerBase::threadState::Registered));
-      ASSERT_EQ(dtsPtr.get()->isRegistered(), true);
+      for(unsigned int i {1}; i <= numThreads; ++i)
+      {
+        auto dtsPtr = makeSharedDeferredThreadScheduler<threadResultType, threadFun>("intFoo");
+        dtsPtr.get()->registerThread([i]() noexcept(false) -> threadResultType
+        {
+          std::this_thread::sleep_for(std::chrono::microseconds((i * maxLoops) >> 1));
+          // safe cancellation point, use the macro
+          TERMINATE_ON_CANCELLATION(threadResultType)
+          return 0;
+        } );
+        v.push_back(dtsPtr);
+
+        ASSERT_EQ(dtsPtr.get()->getThreadState(),
+                  static_cast<int>(deferredThreadSchedulerBase::threadState::Registered));
+        ASSERT_EQ(dtsPtr.get()->isRegistered(), true);
+      }
+      ASSERT_EQ(numThreads, v.size());
+      for (auto& dts : v)
+      {
+        // since the deferred time is 0 seconds we should expect the thread status
+        // as either: scheduled, running, or run
+        dts.get()->runIn(deferredTime);
+
+        ASSERT_TRUE(dts.get()->getThreadState() == static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled) ||
+                    dts.get()->getThreadState() == static_cast<int>(deferredThreadSchedulerBase::threadState::Running) ||
+                    dts.get()->getThreadState() == static_cast<int>(deferredThreadSchedulerBase::threadState::Run) );
+
+        ASSERT_TRUE(dts.get()->isScheduled() == true ||
+                    dts.get()->isRunning() == true ||
+                    dts.get()->isRun() == true );
+      }
+      std::cout << l
+                << "/"
+                << maxLoops
+                << ": exiting scope..." << std::flush;
+      // all dts objects are destroyed, and cancellation flags for the threads that
+      // are not yet terminated are set; since the threads check the flag, they
+      // will terminate
     }
-    ASSERT_EQ(numThreads, v.size());
-    for (auto& dts : v)
-    {
-      // since the deferred time is 0 seconds we should expect the thread status
-      // as either: scheduled, running, or run
-      dts.get()->runIn(deferredTime);
-
-      ASSERT_TRUE(dts.get()->getThreadState() == static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled) ||
-                  dts.get()->getThreadState() == static_cast<int>(deferredThreadSchedulerBase::threadState::Running) ||
-                  dts.get()->getThreadState() == static_cast<int>(deferredThreadSchedulerBase::threadState::Run) );
-
-      ASSERT_TRUE(dts.get()->isScheduled() == true ||
-                  dts.get()->isRunning() == true ||
-                  dts.get()->isRun() == true );
-    }
+    auto [cfSize, cfSet, cfUnset] = deferredThreadSchedulerBase::listCancellationFlags(std::cout);
+    ASSERT_EQ(0, cfSize);
+    ASSERT_EQ(0, cfSet);
+    ASSERT_EQ(0, cfUnset);
   }
-  std::cout << "exiting scope..." << std::flush;
-  // all dts objects are destroyed, and cancellation flags for the threads are set;
-  // since the threads check the flag, they will terminate
-  auto [cfSize, cfSet, cfUnset] = deferredThreadSchedulerBase::listCancellationFlags(std::cout);
-  ASSERT_EQ(0, cfSize);
-  ASSERT_EQ(0, cfSet);
-  ASSERT_EQ(0, cfUnset);
 }
 
 TEST(deferredThreadScheduler,last_test)

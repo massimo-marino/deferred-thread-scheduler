@@ -70,13 +70,13 @@ The example source code commented is here below to show how to use the class.
  * 
  * Created on November 17, 2017, 11:57 AM
  */
+
 #include "../deferredThreadScheduler.h"
-#include <iostream>
 ////////////////////////////////////////////////////////////////////////////////
 auto main() -> int
 {
   using namespace std::chrono_literals;
-  using namespace deferredThreadScheduler;
+  using namespace deferredThreadSchedulerNS;
 
   std::cout << "\n[" << __func__ << "] "
             << "Deferred Thread Scheduler Example STARTED\n";
@@ -96,7 +96,7 @@ auto main() -> int
                               return str1 + str2;
                             };
 
-  // create an object for the deferred thread scheduler and register the thread
+  // create an object for the deferred thread scheduler and register the thread function
   deferredThreadScheduler<threadResultType, threadFun> dts {"concatStrings", concatStrings, s1, s2};
 
   if ( dts.isRegistered() )
@@ -111,7 +111,7 @@ auto main() -> int
   }
 
   // the deferred time in seconds
-  auto deferredTime = 4s;
+  auto deferredTime {4s};
   // schedule the thread to run in deferredTime seconds from now
   dts.runIn(deferredTime);
 
