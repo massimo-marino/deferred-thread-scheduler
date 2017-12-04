@@ -10,6 +10,7 @@
 #include <type_traits>
 #include <string>
 #include <tuple>
+#include <map>
 #include <atomic>
 #include <mutex>
 #include <future>
@@ -17,7 +18,7 @@
 #include <condition_variable>
 #include <chrono>
 ////////////////////////////////////////////////////////////////////////////////
-namespace deferredThreadScheduler
+namespace deferredThreadSchedulerNS
 {
 using namespace std::chrono_literals;
 
@@ -38,6 +39,10 @@ using baseThreadStateType = int;
 template<typename RT = deafultThreadFunctionResult, typename... Args>
 using defaulThreadFun = std::function<RT(const Args&... args)>;
 
+using uniqueKey = std::thread::id;
+using cflag = bool;
+using cflags = std::map<uniqueKey, cflag>;
+
 class deferredThreadSchedulerBase
 {
 public:
@@ -52,7 +57,7 @@ public:
     ExceptionThrown
   };
 
-  static const std::string version;
+  static inline std::string version {"1.0.0"};
   static const std::string& deferredThreadSchedulerVersion() noexcept;
 
   // we don't want these objects allocated on the heap
@@ -75,11 +80,7 @@ public:
   cancelThread() const noexcept;
 
   baseThreadStateType
-  getThreadState() const noexcept
-  {
-    std::lock_guard<std::mutex> lg(threadState_mx_);
-    return static_cast<baseThreadStateType>(threadState_);
-  }
+  getThreadState() const noexcept;
 
   constexpr
   bool
@@ -166,7 +167,60 @@ public:
     return exceptionThrownMessage_;
   }
 
+  static
+  bool
+  isCancellationFlagSet(const uniqueKey& uk) noexcept
+  {
+    return true == getCancellationFlag(uk);
+  }
+  static
+  bool
+  isCancellationFlagSet() noexcept
+  {
+    return true == getCancellationFlag(std::this_thread::get_id());
+  }
+
+  static
+  auto
+  listCancellationFlags(std::ostream& os) noexcept
+  {
+    unsigned int cancellationFlagSet {};
+    unsigned int cancellationFlagUnSet {};
+
+    std::unique_lock<std::mutex> lk(cancellationFlagsMx_);
+    if ( 0 == getCancellationFlags_ref().size() )
+    {
+      os << "[" << __func__ << "] "
+         << "Cancellation flags map is EMPTY"
+         << std::endl;
+    }
+    for(auto&& [uniqueKey, cancellationFlag] : getCancellationFlags_ref())
+    {
+      os << "[" << __func__ << "] "
+         << uniqueKey
+         << ": "
+         << std::boolalpha
+         << cancellationFlag
+         << std::endl;
+      if ( false == cancellationFlag )
+      {
+        ++cancellationFlagUnSet;
+      }
+      else
+      {
+        ++cancellationFlagSet;
+      }
+    }
+    return std::make_tuple(getCancellationFlags_ref().size(),
+                           cancellationFlagSet,
+                           cancellationFlagUnSet);
+  }
+
  protected:
+  // mutex associated to cancellation flags static map
+  static inline std::mutex cancellationFlagsMx_ {};
+  static cflags cancellationFlags_;
+
   std::string threadName_ {};
 
   // condition variable for thread cancellation notification
@@ -178,9 +232,6 @@ public:
   mutable std::mutex threadState_mx_ {};
   mutable threadState threadState_ {threadState::NotValid};
   mutable std::atomic<std::thread::id> threadId_;
-
-  // unused: for padding only
-  [[maybe_unused]] const char dummy_ [4] {};
 
   mutable std::string exceptionThrownMessage_ {};
 
@@ -202,7 +253,59 @@ public:
 
   void
   setThreadId() const noexcept;
+
+  static
+  cflags&
+  getCancellationFlags_ref() noexcept
+  {
+    return cancellationFlags_;
+  }
+
+  static
+  void
+  setCancellationFlag(const uniqueKey& uk) noexcept
+  {
+    std::unique_lock<std::mutex> lk(cancellationFlagsMx_);
+    getCancellationFlags_ref()[uk] = true;
+  }
+  static
+  void
+  setCancellationFlag() noexcept
+  {
+    std::unique_lock<std::mutex> lk(cancellationFlagsMx_);
+    getCancellationFlags_ref()[std::this_thread::get_id()] = true;
+  }
+
+  static
+  cflag
+  getCancellationFlag(const uniqueKey& uk) noexcept
+  {
+    std::unique_lock<std::mutex> lk(cancellationFlagsMx_);
+    return getCancellationFlags_ref()[uk];
+  }
+  static
+  cflag
+  getCancellationFlag() noexcept
+  {
+    std::unique_lock<std::mutex> lk(cancellationFlagsMx_);
+    return getCancellationFlags_ref()[std::this_thread::get_id()];
+  }
+
+  static
+  auto
+  eraseCancellationFlag(const uniqueKey& uk) noexcept
+  {
+    // remove the entry for this thread from the static map
+    std::unique_lock<std::mutex> lk(cancellationFlagsMx_);
+    return getCancellationFlags_ref(). erase(uk);
+  }
 };  // class deferredThreadSchedulerBase
+
+#define TERMINATE_ON_CANCELLATION(THREAD_RETURN_TYPE) \
+if ( deferredThreadSchedulerBase::isCancellationFlagSet() ) \
+{ \
+  return THREAD_RETURN_TYPE {}; \
+} \
 
 template <typename RT = deafultThreadFunctionResult, typename F = defaulThreadFun<RT>>
 class deferredThreadScheduler final : public deferredThreadSchedulerBase
@@ -225,6 +328,12 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
     return threadFuture_;
   }
 
+  void
+  setThreadFuture(const std::shared_future<threadResult>& r) const noexcept
+  {
+    threadFuture_ = r;
+  }
+
  public:
   // we don't want these objects allocated on the heap
   void* operator new(std::size_t) = delete;
@@ -233,8 +342,43 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
   deferredThreadScheduler(const deferredThreadScheduler& rhs) = default;
   deferredThreadScheduler& operator=(const deferredThreadScheduler& rhs) = default;
 
-  ~deferredThreadScheduler()
-  {}
+  ~deferredThreadScheduler() noexcept
+  {
+    auto tid = getThreadId();
+    // the dtor MUST NEVER be called manually.
+    // So, if the thread is still running we must force its termination by
+    // setting the cancellation flag and waiting its termination.
+    // This works only if the thread calls the static method isCancellationFlagSet()
+    // at a safe cancellation point of its code; otherwise the thread continues
+    // executing and the dtor never ends
+    if ( isRunning() )
+    {
+      // this to notify the thread that must call isCancellationFlagSet() at a
+      // safe cancellation point of its code to verify its cancellation flag was set
+      setCancellationFlag(tid);
+      // then the thread must terminate and the dtor blocks here until done
+      terminate(tid);   
+      return;
+    }
+    // remove the entry for this thread from the static map
+    eraseCancellationFlag(tid);
+  }
+
+  auto
+  terminate(const uniqueKey& tid) const noexcept(false)
+  {
+    auto r = getThreadFuture().get();
+
+    // remove the entry for this thread from the static map
+    eraseCancellationFlag(tid);
+    return r;
+  }
+  constexpr
+  auto
+  terminate() const noexcept(false)
+  {
+    return terminate(getThreadId());
+  }
 
   explicit
   deferredThreadScheduler(const std::string& threadName) noexcept
@@ -264,13 +408,13 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
       f_ = [this, f, &args...]
            (const std::chrono::seconds& deferredTimeSeconds) noexcept(false) -> threadResult const
            {
-             setThreadId();
-
-             std::unique_lock<std::mutex> lk(cv_mx_);
              RT result {};
+
+             setThreadId();
+             std::unique_lock<std::mutex> lk(cv_mx_);
              // wait on the condition variable until timeout or notification of cancellation
-             std::cv_status r = cv_.wait_for(lk, deferredTimeSeconds);
-             if ( std::cv_status::timeout == r )
+             if ( std::cv_status r = cv_.wait_for(lk, deferredTimeSeconds);
+                  std::cv_status::timeout == r )
              {
                if ( threadState::Scheduled == getThreadState_() )
                {
@@ -295,7 +439,7 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
     {
       setThreadState(threadState::Scheduled);
       // run the closure async
-      threadFuture_ = reallyAsync(f_, deferredTimeSeconds);
+      setThreadFuture(reallyAsync(f_, deferredTimeSeconds));
     }
     // allow chain calls
     return *this;
@@ -306,9 +450,9 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
   threadResult
   wait() const noexcept(false)
   {
-    auto ts = getThreadState();
+    auto ts {getThreadState()};
 
-    if ( auto ts_ = getThreadState_();
+    if ( auto ts_ {getThreadState_()};
          ( (threadState::Scheduled == ts_) ||
            (threadState::Running == ts_) ||
            (threadState::Run == ts_)) )
@@ -318,13 +462,15 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
       try
       {
         // wait here the termination
-        return getThreadFuture().get();
+        return terminate();
       }
       catch (std::exception& e)
       {
+        // remove the entry for this thread from the static map
+        eraseCancellationFlag(getThreadId());
         setExceptionThrownMessage(e.what());
         setThreadState(threadState::ExceptionThrown);
-        return std::make_tuple(getThreadState(), RT{});
+        return std::make_tuple(getThreadState(), RT {});
       }
     }
     // if the thread is not in the right state then return here with default
@@ -337,9 +483,9 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
   threadResult
   wait_for(const std::chrono::milliseconds& ms = 0ms) const noexcept(false)
   {
-    auto ts = getThreadState();
-    
-    if ( auto ts_ = getThreadState_();
+    auto ts {getThreadState()};
+
+    if ( auto ts_ {getThreadState_()};
          ( (threadState::Scheduled == ts_) ||
            (threadState::Running == ts_) ||
            (threadState::Run == ts_)) )
@@ -350,19 +496,34 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
         // std::future::get() is invoked.
         try
         {
-           // wait here the termination
-          return getThreadFuture().get();
+          // wait here the termination
+          return terminate();
         }
         catch (std::exception& e)
         {
+          // remove the entry for this thread from the static map
+          eraseCancellationFlag(getThreadId());
           setExceptionThrownMessage(e.what());
           setThreadState(threadState::ExceptionThrown);
-          return std::make_tuple(getThreadState(), RT{});
+          return std::make_tuple(getThreadState(), RT {});
         }
       }
     }
     // return after time-out: thread not terminated
     return std::make_tuple(ts, RT{});
+  }
+
+  static
+  bool
+  isCancellationFlagSet(const uniqueKey& uk) noexcept
+  {
+    return true == getCancellationFlag(uk);
+  }
+  static
+  bool
+  isCancellationFlagSet() noexcept
+  {
+    return true == getCancellationFlag(std::this_thread::get_id());
   }
 };  // class deferredThreadScheduler
 

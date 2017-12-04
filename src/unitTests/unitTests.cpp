@@ -11,11 +11,13 @@
 #include <gmock/gmock.h>
 ////////////////////////////////////////////////////////////////////////////////
 using namespace ::testing;
-using namespace ::deferredThreadScheduler;
+using namespace ::utilities;
+using namespace ::deferredThreadSchedulerNS;
 // BEGIN: ignore the warnings listed below when compiled with clang from here
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wexit-time-destructors"
 #pragma clang diagnostic ignored "-Wglobal-constructors"
+#pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
 ////////////////////////////////////////////////////////////////////////////////
 TEST(deferredThreadScheduler, deferredThreadSchedulerVersion)
 {
@@ -29,9 +31,9 @@ TEST(deferredThreadScheduler, test_1)
   using threadFun = std::function<threadResultType()>;
   threadFun intFoo = []() noexcept -> threadResultType
   {
-    utilities::pclog{} << "[ " << __func__ << " ] "
-                       << "intFoo() running................................."
-                       << std::endl;
+    pclog{} << "[ " << __func__ << " ] "
+            << "intFoo() running................................."
+            << std::endl;
     return 135;
   };
 
@@ -87,11 +89,11 @@ TEST(deferredThreadScheduler, test_2)
   threadFun intFoo = [&threadArg] () noexcept -> threadResultType
   {
     threadArg += "from intFoo()!!!";
-    utilities::pclog{} << "[ " << __func__ << " ] "
-                       << "intFoo() running: "
-                       << threadArg
-                       << "................................."
-                       << std::endl;
+    pclog{} << "[ " << __func__ << " ] "
+            << "intFoo() running: "
+            << threadArg
+            << "................................."
+            << std::endl;
     return 246;
   };
 
@@ -148,11 +150,11 @@ TEST(deferredThreadScheduler, test_2_1)
   threadFun intFoo = [threadArg] () mutable noexcept -> threadResultType
   {
     threadArg += "from intFoo()!!!";
-    utilities::pclog{} << "[ " << __func__ << " ] "
-                       << "intFoo() running: "
-                       << threadArg
-                       << "................................."
-                       << std::endl;
+    pclog{} << "[ " << __func__ << " ] "
+            << "intFoo() running: "
+            << threadArg
+            << "................................."
+            << std::endl;
     return 357;
   };
 
@@ -203,9 +205,9 @@ using threadGlobalResultType = int;
 threadGlobalResultType intFooGlobal() noexcept;
 threadGlobalResultType intFooGlobal() noexcept
 {
-  utilities::pclog{} << "[ " << __func__ << " ] "
-                     << "intFooGlobal() running................................."
-                     << std::endl;
+  pclog{} << "[ " << __func__ << " ] "
+          << "intFooGlobal() running................................."
+          << std::endl;
   return 862;
 };
 
@@ -319,22 +321,22 @@ TEST(deferredThreadScheduler, test_5)
   auto dtsPtr_1 = std::make_shared<deferredThreadScheduler<threadResultType, threadFun>>("intFoo");
   dtsPtr_1.get()->registerThread([i]() noexcept -> threadResultType
                               {
-                                utilities::pclog{} << "[ " << __func__ << " ] "
-                                          << i
-                                          << ": intFoo() #1 running: "
-                                          << "................................."
-                                          << std::endl;
+                                pclog{} << "[ " << __func__ << " ] "
+                                        << i
+                                        << ": intFoo() #1 running: "
+                                        << "................................."
+                                        << std::endl;
                                 return 741;
                               });
   ++i;
   auto dtsPtr_2 = std::make_shared<deferredThreadScheduler<threadResultType, threadFun>>("intFoo");
   dtsPtr_2.get()->registerThread([i]() noexcept -> threadResultType
                               {
-                                utilities::pclog{} << "[ " << __func__ << " ] "
-                                          << i
-                                          << ": intFoo() #2 running: "
-                                          << "................................."
-                                          << std::endl;
+                                pclog{} << "[ " << __func__ << " ] "
+                                        << i
+                                        << ": intFoo() #2 running: "
+                                        << "................................."
+                                        << std::endl;
                                 return 963;
                               });
 
@@ -388,7 +390,7 @@ TEST(deferredThreadScheduler, test_6)
   for(int i = 1; i <= numThreads; ++i)
   {
     auto dtsPtr = makeSharedDeferredThreadScheduler<threadResultType, threadFun>("intFoo");
-    dtsPtr.get()->registerThread([i]() noexcept -> threadResultType
+    dtsPtr.get()->registerThread([]() noexcept -> threadResultType
                                  {
                                    return 42;
                                  });
@@ -433,7 +435,7 @@ TEST(deferredThreadScheduler, test_6_1)
   for(int i = 1; i <= numThreads; ++i)
   {
     auto dtsPtr = makeSharedDeferredThreadScheduler<threadResultType, threadFun>("intFoo");
-    dtsPtr.get()->registerThread([i]() noexcept -> threadResultType
+    dtsPtr.get()->registerThread([]() noexcept -> threadResultType
                                  {
                                    return 42;
                                  });
@@ -486,11 +488,11 @@ TEST(deferredThreadScheduler, test_7)
     auto dtsPtr = makeSharedDeferredThreadScheduler<threadResultType, threadFun>("intFoo");
     dtsPtr.get()->registerThread([i]() noexcept -> threadResultType
                               {
-                                utilities::pclog{} << "[ " << __func__ << " ] "
-                                          << i
-                                          << ": intFoo() running: "
-                                          << "................................."
-                                          << std::endl;
+                                pclog{} << "[ " << __func__ << " ] "
+                                        << i
+                                        << ": intFoo() running: "
+                                        << "................................."
+                                        << std::endl;
                                 return 42;
                               });
     v.push_back(dtsPtr);
@@ -646,7 +648,7 @@ TEST(deferredThreadScheduler, test_11)
     using threadFun = std::function<threadResultType()>;
 
     // the thread function
-    threadFun wellLoop = []() noexcept(false) -> threadResultType const
+    threadFun wellLoop = []() noexcept(false) -> threadResultType
                          {
                            std::this_thread::sleep_for(1s);
                            throw std::runtime_error("runtime error");
@@ -683,7 +685,7 @@ TEST(deferredThreadScheduler, test_12)
     using threadFun = std::function<threadResultType()>;
 
     // the thread function
-    threadFun wellLoop = []() noexcept(false) -> threadResultType const
+    threadFun wellLoop = []() noexcept(false) -> threadResultType
                          {
                            std::this_thread::sleep_for(1s);
                            throw std::runtime_error("runtime error");
@@ -704,6 +706,110 @@ TEST(deferredThreadScheduler, test_12)
       std::cout << dts.getExceptionThrownMessage() << std::endl;
     }
   }
+}
+
+// test that the cancellation flag is set at a safe cancellation point so that
+// the thread can be terminated safely
+TEST(deferredThreadScheduler, test_13)
+{
+  {
+    // the result type of the thread function
+    using threadResultType = int;
+    // the thread function type/signature
+    using threadFun = std::function<threadResultType()>;
+
+    // the thread function
+    threadFun wellLoop = []() noexcept(false) -> threadResultType const
+                         {
+                           std::cout << "RUNNING" << std::endl;
+                           while ( true )
+                           {
+                             std::cout << "*" << std::flush;
+                             std::this_thread::sleep_for(1s);
+                             // safe cancellation point, use the macro
+                             TERMINATE_ON_CANCELLATION(threadResultType)
+                           }
+                         };
+
+    // create an object for the deferred thread scheduler
+    deferredThreadScheduler<threadResultType, threadFun> dts {"wellLoop"};
+
+    // register the thread, schedule the thread to run in 2s from now
+    dts.registerThread(wellLoop).runIn(2s);
+    while ( false == dts.isRunning() )
+    {
+      std::cout << "." << std::flush;
+      std::this_thread::sleep_for(1s);
+    }
+    ASSERT_EQ(dts.isRunning(), true);
+    deferredThreadSchedulerBase::listCancellationFlags(std::cout);
+    std::cout << "exiting scope..." << std::flush;
+  }
+  // dts object is destroyed, and cancellation flag for the thread is set;
+  // since the thread checks the flag, it will terminate
+  auto [cfSize, cfSet, cfUnset] = deferredThreadSchedulerBase::listCancellationFlags(std::cout);
+  ASSERT_EQ(0, cfSize);
+  ASSERT_EQ(0, cfSet);
+  ASSERT_EQ(0, cfUnset);
+}
+
+// schedule many threads with a deferred time of 0 seconds, run them, and leave
+// the scope so the dtor is called and the thread's cancellation flags are set
+TEST(deferredThreadScheduler, test_14)
+{
+  {
+    using threadResultType = int;
+    using threadFun = std::function<threadResultType()>;
+    using dtsSharedPtr = std::shared_ptr<deferredThreadScheduler<threadResultType, threadFun>>;
+    std::vector<dtsSharedPtr> v {};
+    auto deferredTime = 0s;
+    const int numThreads = 10'000;
+
+    for(int i = 1; i <= numThreads; ++i)
+    {
+      auto dtsPtr = makeSharedDeferredThreadScheduler<threadResultType, threadFun>("intFoo");
+      dtsPtr.get()->registerThread([]() noexcept -> threadResultType
+                                   {
+                                     // safe cancellation point, use the macro
+                                     TERMINATE_ON_CANCELLATION(threadResultType)
+                                   } );
+      v.push_back(dtsPtr);
+
+      ASSERT_EQ(dtsPtr.get()->getThreadState(),
+                static_cast<int>(deferredThreadSchedulerBase::threadState::Registered));
+      ASSERT_EQ(dtsPtr.get()->isRegistered(), true);
+    }
+    ASSERT_EQ(numThreads, v.size());
+    for (auto& dts : v)
+    {
+      // since the deferred time is 0 seconds we should expect the thread status
+      // as either: scheduled, running, or run
+      dts.get()->runIn(deferredTime);
+
+      ASSERT_TRUE(dts.get()->getThreadState() == static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled) ||
+                  dts.get()->getThreadState() == static_cast<int>(deferredThreadSchedulerBase::threadState::Running) ||
+                  dts.get()->getThreadState() == static_cast<int>(deferredThreadSchedulerBase::threadState::Run) );
+
+      ASSERT_TRUE(dts.get()->isScheduled() == true ||
+                  dts.get()->isRunning() == true ||
+                  dts.get()->isRun() == true );
+    }
+  }
+  std::cout << "exiting scope..." << std::flush;
+  // all dts objects are destroyed, and cancellation flags for the threads are set;
+  // since the threads check the flag, they will terminate
+  auto [cfSize, cfSet, cfUnset] = deferredThreadSchedulerBase::listCancellationFlags(std::cout);
+  ASSERT_EQ(0, cfSize);
+  ASSERT_EQ(0, cfSet);
+  ASSERT_EQ(0, cfUnset);
+}
+
+TEST(deferredThreadScheduler,last_test)
+{
+  auto [cfSize, cfSet, cfUnset] = deferredThreadSchedulerBase::listCancellationFlags(std::cout);
+  ASSERT_EQ(0, cfSize);
+  ASSERT_EQ(0, cfSet);
+  ASSERT_EQ(0, cfUnset);
 }
 ////////////////////////////////////////////////////////////////////////////////
 #pragma clang diagnostic pop

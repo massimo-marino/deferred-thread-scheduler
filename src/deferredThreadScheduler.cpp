@@ -11,9 +11,9 @@
 #pragma clang diagnostic ignored "-Wexit-time-destructors"
 #pragma clang diagnostic ignored "-Wglobal-constructors"
 ////////////////////////////////////////////////////////////////////////////////
-namespace deferredThreadScheduler
+namespace deferredThreadSchedulerNS
 {
-std::string const deferredThreadSchedulerBase::version = "1.0.0";
+cflags deferredThreadSchedulerBase::cancellationFlags_ {};
 
 const
 std::string&
@@ -78,6 +78,12 @@ deferredThreadSchedulerBase::setThreadState(const threadState& threadState) cons
   threadState_ = threadState; 
 }
 
+baseThreadStateType
+deferredThreadSchedulerBase::getThreadState() const noexcept
+{
+  std::lock_guard<std::mutex> lg(threadState_mx_);
+  return static_cast<baseThreadStateType>(threadState_);
+}
 }  // namespace deferredThreadScheduler
 ////////////////////////////////////////////////////////////////////////////////
 #pragma clang diagnostic pop
