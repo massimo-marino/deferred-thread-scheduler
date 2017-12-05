@@ -772,9 +772,9 @@ TEST(deferredThreadScheduler, test_14)
       for(unsigned int i {1}; i <= numThreads; ++i)
       {
         auto dtsPtr = makeSharedDeferredThreadScheduler<threadResultType, threadFun>("intFoo");
-        dtsPtr.get()->registerThread([i]() noexcept(false) -> threadResultType
+        dtsPtr.get()->registerThread([]() noexcept(false) -> threadResultType
         {
-          std::this_thread::sleep_for(std::chrono::microseconds((i * maxLoops) >> 1));
+          std::this_thread::sleep_for(std::chrono::milliseconds(750));
           // safe cancellation point, use the macro
           TERMINATE_ON_CANCELLATION(threadResultType)
           return 0;
