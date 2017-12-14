@@ -346,7 +346,9 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
   {
     auto tid = getThreadId();
     // the dtor MUST NEVER be called manually.
-    // So, if the thread is still running we must force its termination by
+    // Remember: the std::future returned from std::async will block in its
+    // destructor until the asynchronously running thread has completed
+    // So, here, if the thread is still running we must force its termination by
     // setting the cancellation flag and waiting its termination.
     // This works only if the thread calls the static method isCancellationFlagSet()
     // at a safe cancellation point of its code; otherwise the thread continues
