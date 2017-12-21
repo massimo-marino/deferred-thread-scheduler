@@ -12,7 +12,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 using namespace ::testing;
 using namespace ::utilities;
-using namespace ::deferredThreadSchedulerNS;
+using namespace ::deferredThreadScheduler;
 // BEGIN: ignore the warnings listed below when compiled with clang from here
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wexit-time-destructors"
@@ -214,7 +214,7 @@ threadGlobalResultType intFooGlobal() noexcept(false)
 TEST(deferredThreadScheduler, test_3)
 {
   using threadResultType = threadGlobalResultType;
-  auto deferredTime {1s};
+  auto deferredTime {1'000'000us};
   deferredThreadScheduler<threadResultType, threadResultType()> dts {"intFooGlobal"};
   dts.registerThread(intFooGlobal);
 
@@ -315,7 +315,7 @@ TEST(deferredThreadScheduler, test_5)
 {
   using threadResultType = int;
   using threadFun = std::function<threadResultType()>;
-  auto deferredTime {3s};
+  auto deferredTime {3'000'000'000ns};
   int i {1};
 
   auto dtsPtr_1 = std::make_shared<deferredThreadScheduler<threadResultType, threadFun>>("intFoo");
@@ -546,7 +546,7 @@ TEST(deferredThreadScheduler, test_8)
           static_cast<int>(deferredThreadSchedulerBase::threadState::Registered));
   ASSERT_EQ(dts.isRegistered(), true);
 
-  auto deferredTime = 3s;
+  auto deferredTime = 3.0;
   dts.runIn(deferredTime);
 
   ASSERT_EQ(dts.getThreadState(),
@@ -695,7 +695,7 @@ TEST(deferredThreadScheduler, test_12)
     // create an object for the deferred thread scheduler
     deferredThreadScheduler<threadResultType, threadFun> dts {"wellLoop"};
 
-    // register the thread, schedule the thread to run in 2s from now
+    // register the thread, schedule the thread to run in 1s from now
     dts.registerThread(wellLoop).runIn(1s);
     // wait the thread throws the exception
     auto [threadState, threadResult] = dts.wait();
@@ -735,7 +735,7 @@ TEST(deferredThreadScheduler, test_13)
     deferredThreadScheduler<threadResultType, threadFun> dts {"wellLoop"};
 
     // register the thread, schedule the thread to run in 2s from now
-    dts.registerThread(wellLoop).runIn(2s);
+    dts.registerThread(wellLoop).runIn(2000ms);
     while ( false == dts.isRunning() )
     {
       std::cout << "." << std::flush;

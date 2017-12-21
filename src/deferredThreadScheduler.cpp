@@ -11,7 +11,7 @@
 #pragma clang diagnostic ignored "-Wexit-time-destructors"
 #pragma clang diagnostic ignored "-Wglobal-constructors"
 ////////////////////////////////////////////////////////////////////////////////
-namespace deferredThreadSchedulerNS
+namespace deferredThreadScheduler
 {
 cflags deferredThreadSchedulerBase::cancellationFlags_ {};
 
@@ -64,7 +64,6 @@ deferredThreadSchedulerBase::setThreadId() const noexcept
   threadId_.store(std::this_thread::get_id());
 }
 
-const
 std::thread::id
 deferredThreadSchedulerBase::getThreadId() const noexcept
 {

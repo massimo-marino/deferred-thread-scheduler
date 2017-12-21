@@ -17,8 +17,9 @@
 #include <thread>
 #include <condition_variable>
 #include <chrono>
+#include <ratio>
 ////////////////////////////////////////////////////////////////////////////////
-namespace deferredThreadSchedulerNS
+namespace deferredThreadScheduler
 {
 using namespace std::chrono_literals;
 
@@ -156,11 +157,9 @@ public:
     return threadState::ExceptionThrown == getThreadState_();
   }
 
-  const
   std::thread::id
   getThreadId() const noexcept;
 
-  const
   std::string
   getExceptionThrownMessage() const noexcept
   {
@@ -316,12 +315,12 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
 
  public:
   using threadResult = std::tuple<baseThreadStateType, RT>;
+  using deferredTimeGranularity = std::chrono::nanoseconds;
 
- private:
-  mutable std::function<threadResult(const std::chrono::seconds)> f_ {};
+private:
+  mutable std::function<threadResult(const deferredTimeGranularity)> f_ {};
   mutable std::shared_future<threadResult> threadFuture_ {};
 
-  const
   std::shared_future<threadResult>&
   getThreadFuture() const noexcept
   {
@@ -408,14 +407,14 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
       //   - f MUST be captured by value; if passed by reference the same lambda
       //     will be defined in all object instances created
       f_ = [this, f, &args...]
-           (const std::chrono::seconds& deferredTimeSeconds) noexcept(false) -> threadResult const
+           (const deferredTimeGranularity deferredTime) noexcept(false) -> threadResult const
            {
              RT result {};
 
              setThreadId();
              std::unique_lock<std::mutex> lk(cv_mx_);
              // wait on the condition variable until timeout or notification of cancellation
-             if ( std::cv_status r = cv_.wait_for(lk, deferredTimeSeconds);
+             if ( std::cv_status r = cv_.wait_for(lk, deferredTime);
                   std::cv_status::timeout == r )
              {
                if ( threadState::Scheduled == getThreadState_() )
@@ -435,13 +434,33 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
   }
 
   auto&
-  runIn(const std::chrono::seconds& deferredTimeSeconds) const noexcept
+  runIn(const double deferredTimeSeconds) const noexcept
+  {
+    return runIn(std::chrono::duration_cast<deferredTimeGranularity>(std::chrono::duration<double>{deferredTimeSeconds}));
+  }
+  auto&
+  runIn(const std::chrono::seconds deferredTime) const noexcept
+  {
+    return runIn(std::chrono::duration_cast<deferredTimeGranularity>(deferredTime));
+  }
+  auto&
+  runIn(const std::chrono::milliseconds deferredTime) const noexcept
+  {
+    return runIn(std::chrono::duration_cast<deferredTimeGranularity>(deferredTime));
+  }
+  auto&
+  runIn(const std::chrono::microseconds deferredTime) const noexcept
+  {
+    return runIn(std::chrono::duration_cast<deferredTimeGranularity>(deferredTime));
+  }
+  auto&
+  runIn(const deferredTimeGranularity deferredTime) const noexcept
   {
     if ( threadState::Registered == getThreadState_() )
     {
       setThreadState(threadState::Scheduled);
       // run the closure async
-      setThreadFuture(reallyAsync(f_, deferredTimeSeconds));
+      setThreadFuture(reallyAsync(f_, deferredTime));
     }
     // allow chain calls
     return *this;
@@ -480,10 +499,31 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
     return std::make_tuple(ts, RT{});
   }
 
+  // wait at most s seconds for thread termination, then return no result
+  // in case of time-out, otherwise return the result/future if the thread terminated
+  threadResult
+  wait_for(const std::chrono::seconds s) const noexcept(false)
+  {
+    return wait_for(std::chrono::duration_cast<std::chrono::nanoseconds>(s));
+  }
   // wait at most ms milliseconds for thread termination, then return no result
   // in case of time-out, otherwise return the result/future if the thread terminated
   threadResult
-  wait_for(const std::chrono::milliseconds& ms = 0ms) const noexcept(false)
+  wait_for(const std::chrono::milliseconds ms) const noexcept(false)
+  {
+    return wait_for(std::chrono::duration_cast<std::chrono::nanoseconds>(ms));
+  }
+  // wait at most us microseconds for thread termination, then return no result
+  // in case of time-out, otherwise return the result/future if the thread terminated
+  threadResult
+  wait_for(const std::chrono::microseconds us) const noexcept(false)
+  {
+    return wait_for(std::chrono::duration_cast<std::chrono::nanoseconds>(us));
+  }
+  // wait at most ns nanoseconds for thread termination, then return no result
+  // in case of time-out, otherwise return the result/future if the thread terminated
+  threadResult
+  wait_for(const std::chrono::nanoseconds ns = 0ns) const noexcept(false)
   {
     auto ts {getThreadState()};
 
@@ -492,7 +532,7 @@ class deferredThreadScheduler final : public deferredThreadSchedulerBase
            (threadState::Running == ts_) ||
            (threadState::Run == ts_)) )
     {
-      if ( std::future_status::ready == getThreadFuture().wait_for(ms) )
+      if ( std::future_status::ready == getThreadFuture().wait_for(ns) )
       {
         // an exception thrown inside an async task is propagated when
         // std::future::get() is invoked.
