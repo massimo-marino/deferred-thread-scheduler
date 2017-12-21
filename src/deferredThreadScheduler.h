@@ -89,30 +89,35 @@ public:
   {
     return static_cast<baseThreadStateType>(threadState::Registered) == s;
   }
+
   constexpr
   bool
   isScheduled(const baseThreadStateType s) noexcept
   {
     return static_cast<baseThreadStateType>(threadState::Scheduled) == s;
   }
+
   constexpr
   bool
   isRunning(const baseThreadStateType s) noexcept
   {
     return static_cast<baseThreadStateType>(threadState::Running) == s;
   }
+
   constexpr
   bool
   isRun(const baseThreadStateType s) noexcept
   {
-    return static_cast<baseThreadStateType>(threadState::Run) == s;
+  return static_cast<baseThreadStateType>(threadState::Run) == s;
   }
+
   constexpr
   bool
   isCanceled(const baseThreadStateType s) noexcept
   {
     return static_cast<baseThreadStateType>(threadState::Canceled) == s;
   }
+
   constexpr
   bool
   isExceptionThrown(const baseThreadStateType s) noexcept
@@ -126,30 +131,35 @@ public:
   {
     return threadState::Registered == getThreadState_();
   }
+
   constexpr
   bool
   isScheduled() const noexcept
   {
     return threadState::Scheduled == getThreadState_();
   }
+
   constexpr
   bool
   isRunning() const noexcept
   {
     return threadState::Running == getThreadState_();
   }
+
   constexpr
   bool
   isRun() const noexcept
   {
     return threadState::Run == getThreadState_();
   }
+
   constexpr
   bool
   isCanceled() const noexcept
   {
     return threadState::Canceled == getThreadState_();
   }
+
   constexpr
   bool
   isExceptionThrown() const noexcept
@@ -161,10 +171,7 @@ public:
   getThreadId() const noexcept;
 
   std::string
-  getExceptionThrownMessage() const noexcept
-  {
-    return exceptionThrownMessage_;
-  }
+  getExceptionThrownMessage() const noexcept;
 
   static
   bool
@@ -235,20 +242,13 @@ public:
   mutable std::string exceptionThrownMessage_ {};
 
   void
-  setExceptionThrownMessage(const std::string& s) const noexcept
-  {
-    exceptionThrownMessage_ = s;
-  }
+  setExceptionThrownMessage(const std::string& s) const noexcept;
 
   void
   setThreadState(const threadState& threadState) const noexcept;
 
   threadState
-  getThreadState_() const noexcept
-  {
-    std::lock_guard<std::mutex> lg(threadState_mx_);
-    return threadState_;
-  }
+  getThreadState_() const noexcept;
 
   void
   setThreadId() const noexcept;

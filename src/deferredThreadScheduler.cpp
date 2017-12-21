@@ -70,6 +70,18 @@ deferredThreadSchedulerBase::getThreadId() const noexcept
   return threadId_.load();
 }
 
+std::string
+deferredThreadSchedulerBase::getExceptionThrownMessage() const noexcept
+{
+  return exceptionThrownMessage_;
+}
+
+void
+deferredThreadSchedulerBase::setExceptionThrownMessage(const std::string& s) const noexcept
+{
+  exceptionThrownMessage_ = s;
+}
+
 void
 deferredThreadSchedulerBase::setThreadState(const threadState& threadState) const noexcept
 {
@@ -82,6 +94,13 @@ deferredThreadSchedulerBase::getThreadState() const noexcept
 {
   std::lock_guard<std::mutex> lg(threadState_mx_);
   return static_cast<baseThreadStateType>(threadState_);
+}
+
+deferredThreadSchedulerBase::threadState
+deferredThreadSchedulerBase::getThreadState_() const noexcept
+{
+  std::lock_guard<std::mutex> lg(threadState_mx_);
+  return threadState_;
 }
 }  // namespace deferredThreadScheduler
 ////////////////////////////////////////////////////////////////////////////////
