@@ -6,16 +6,10 @@
  */
 #include "deferredThreadScheduler.h"
 ////////////////////////////////////////////////////////////////////////////////
-// BEGIN: ignore the warnings listed below when compiled with clang from here
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wexit-time-destructors"
-#pragma clang diagnostic ignored "-Wglobal-constructors"
-////////////////////////////////////////////////////////////////////////////////
 namespace deferredThreadScheduler
 {
 cflags deferredThreadSchedulerBase::cancellationFlags_ {};
 
-const
 std::string&
 deferredThreadSchedulerBase::deferredThreadSchedulerVersion () noexcept
 {
@@ -32,7 +26,6 @@ threadName_ (threadName)
 deferredThreadSchedulerBase::~deferredThreadSchedulerBase() noexcept(false)
 {}
 
-const
 std::string&
 deferredThreadSchedulerBase::getThreadName() const noexcept
 {

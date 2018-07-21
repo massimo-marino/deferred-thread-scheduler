@@ -287,7 +287,7 @@ TEST(deferredThreadScheduler, test_4)
 
   // cancel the thread after 7 seconds; the test should take a bit more than
   // 7 seconds, not 60 seconds as requested at the declaration of dts
-  for(int i {1}; i <= 70; ++i)
+  for (int i {1}; i <= 70; ++i)
   {
     auto [threadState, threadResult] = dts.wait_for(100ms);
     if ( dts.isRun(threadState) )
@@ -297,7 +297,7 @@ TEST(deferredThreadScheduler, test_4)
     std::cout << "." << std::flush;
   }
   ASSERT_EQ(dts.getThreadState(),
-          static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled));
+            static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled));
   ASSERT_EQ(dts.isScheduled(), true);
 
   auto result = dts.cancelThread();
@@ -310,7 +310,7 @@ TEST(deferredThreadScheduler, test_4)
             << std::endl;
 }
 
-// schedule 2 threads at the same time and tun them
+// schedule 2 threads at the same time and run them
 TEST(deferredThreadScheduler, test_5)
 {
   using threadResultType = int;
@@ -387,7 +387,7 @@ TEST(deferredThreadScheduler, test_6)
   auto deferredTime {3s};
   const int numThreads {10'000};
 
-  for(int i {1}; i <= numThreads; ++i)
+  for (int i {1}; i <= numThreads; ++i)
   {
     auto dtsPtr = makeSharedDeferredThreadScheduler<threadResultType, threadFun>("intFoo");
     dtsPtr.get()->registerThread([]() noexcept(false) -> threadResultType
@@ -432,7 +432,7 @@ TEST(deferredThreadScheduler, test_6_1)
   auto deferredTime {0s};
   const int numThreads {10'000};
 
-  for(int i {1}; i <= numThreads; ++i)
+  for (int i {1}; i <= numThreads; ++i)
   {
     auto dtsPtr = makeSharedDeferredThreadScheduler<threadResultType, threadFun>("intFoo");
     dtsPtr.get()->registerThread([]() noexcept(false) -> threadResultType
@@ -483,7 +483,7 @@ TEST(deferredThreadScheduler, test_7)
   auto deferredTime {60s};
   const int numThreads {10'000};
 
-  for(int i {1}; i <= numThreads; ++i)
+  for (int i {1}; i <= numThreads; ++i)
   {
     auto dtsPtr = makeSharedDeferredThreadScheduler<threadResultType, threadFun>("intFoo");
     dtsPtr.get()->registerThread([i]() noexcept(false) -> threadResultType
@@ -652,7 +652,6 @@ TEST(deferredThreadScheduler, test_11)
                          {
                            std::this_thread::sleep_for(1s);
                            throw std::runtime_error("runtime error");
-                           return 0;
                          };
 
     // create an object for the deferred thread scheduler
@@ -668,7 +667,7 @@ TEST(deferredThreadScheduler, test_11)
       std::this_thread::sleep_for(1s);
     }
     ASSERT_EQ(dts.isExceptionThrown(), true);
-    if ( true == dts.isExceptionThrown() )
+    if ( dts.isExceptionThrown() )
     {
       std::cout << dts.getExceptionThrownMessage() << std::endl;
     }
@@ -689,7 +688,6 @@ TEST(deferredThreadScheduler, test_12)
                          {
                            std::this_thread::sleep_for(1s);
                            throw std::runtime_error("runtime error");
-                           return 0;
                          };
 
     // create an object for the deferred thread scheduler
@@ -701,7 +699,7 @@ TEST(deferredThreadScheduler, test_12)
     auto [threadState, threadResult] = dts.wait();
 
     ASSERT_EQ(dts.isExceptionThrown(), true);
-    if ( true == dts.isExceptionThrown() )
+    if ( dts.isExceptionThrown() )
     {
       std::cout << dts.getExceptionThrownMessage() << std::endl;
     }
@@ -769,16 +767,16 @@ TEST(deferredThreadScheduler, test_14)
       auto deferredTime {0s};
       const unsigned int numThreads {10'000};
 
-      for(unsigned int i {1}; i <= numThreads; ++i)
+      for (unsigned int i {1}; i <= numThreads; ++i)
       {
         auto dtsPtr = makeSharedDeferredThreadScheduler<threadResultType, threadFun>("intFoo");
         dtsPtr.get()->registerThread([]() noexcept(false) -> threadResultType
-        {
-          std::this_thread::sleep_for(std::chrono::milliseconds(750));
-          // safe cancellation point, use the macro
-          TERMINATE_ON_CANCELLATION(threadResultType)
-          return 0;
-        } );
+                                     {
+                                       std::this_thread::sleep_for(std::chrono::milliseconds(750));
+                                       // safe cancellation point, use the macro
+                                       TERMINATE_ON_CANCELLATION(threadResultType)
+                                       return 0;
+                                     } );
         v.push_back(dtsPtr);
 
         ASSERT_EQ(dtsPtr.get()->getThreadState(),

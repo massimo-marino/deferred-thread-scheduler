@@ -19,6 +19,12 @@
 #include <chrono>
 #include <ratio>
 ////////////////////////////////////////////////////////////////////////////////
+// BEGIN: ignore the warnings listed below when compiled with clang from here
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wexit-time-destructors"
+#pragma clang diagnostic ignored "-Wglobal-constructors"
+#pragma clang diagnostic ignored "-Wpadded"
+////////////////////////////////////////////////////////////////////////////////
 namespace deferredThreadScheduler
 {
 using namespace std::chrono_literals;
@@ -59,21 +65,19 @@ public:
   };
 
   static inline std::string version {"1.0.0"};
-  static const std::string& deferredThreadSchedulerVersion() noexcept;
+  static std::string& deferredThreadSchedulerVersion() noexcept;
 
-  // we don't want these objects allocated on the heap
-  void* operator new(std::size_t) = delete;
-  void* operator new[](std::size_t) = delete;
   deferredThreadSchedulerBase() = delete;
-  deferredThreadSchedulerBase(const deferredThreadSchedulerBase& rhs) = default;
-  deferredThreadSchedulerBase& operator=(const deferredThreadSchedulerBase& rhs) = default;
+  deferredThreadSchedulerBase(const deferredThreadSchedulerBase& rhs) = delete;
+  deferredThreadSchedulerBase& operator=(const deferredThreadSchedulerBase& rhs) = delete;
+  deferredThreadSchedulerBase(deferredThreadSchedulerBase&& rhs) = delete;
+  deferredThreadSchedulerBase& operator=(deferredThreadSchedulerBase&& rhs) = delete;
 
   explicit
   deferredThreadSchedulerBase(const std::string& threadName) noexcept;
 
   virtual ~deferredThreadSchedulerBase() noexcept(false);
 
-  const
   std::string&
   getThreadName() const noexcept;
 
@@ -200,7 +204,7 @@ public:
          << "Cancellation flags map is EMPTY"
          << std::endl;
     }
-    for(auto&& [uniqueKey, cancellationFlag] : getCancellationFlags_ref())
+    for (auto&& [uniqueKey, cancellationFlag] : getCancellationFlags_ref())
     {
       os << "[" << __func__ << "] "
          << uniqueKey
@@ -208,13 +212,13 @@ public:
          << std::boolalpha
          << cancellationFlag
          << std::endl;
-      if ( false == cancellationFlag )
+      if ( cancellationFlag )
       {
-        ++cancellationFlagUnSet;
+        ++cancellationFlagSet;
       }
       else
       {
-        ++cancellationFlagSet;
+        ++cancellationFlagUnSet;
       }
     }
     return std::make_tuple(getCancellationFlags_ref().size(),
@@ -225,13 +229,16 @@ public:
  protected:
   // mutex associated to cancellation flags static map
   static inline std::mutex cancellationFlagsMx_ {};
+
+  // the cancellation flags static map
+  // it's static because it is a class attribute
   static cflags cancellationFlags_;
 
-  std::string threadName_ {};
+  mutable std::string threadName_ {};
 
   // condition variable for thread cancellation notification
   mutable std::condition_variable cv_ {};
-  // mutex associated to the condition variable
+  // mutex associated to the condition variable cv_
   mutable std::mutex cv_mx_ {};
 
   // mutex associated to the thread state
@@ -334,12 +341,11 @@ private:
   }
 
  public:
-  // we don't want these objects allocated on the heap
-  void* operator new(std::size_t) = delete;
-  void* operator new[](std::size_t) = delete;
   deferredThreadScheduler() = delete;
-  deferredThreadScheduler(const deferredThreadScheduler& rhs) = default;
-  deferredThreadScheduler& operator=(const deferredThreadScheduler& rhs) = default;
+  deferredThreadScheduler(const deferredThreadScheduler& rhs) = delete;
+  deferredThreadScheduler& operator=(const deferredThreadScheduler& rhs) = delete;
+  deferredThreadScheduler(deferredThreadScheduler&& rhs) = delete;
+  deferredThreadScheduler& operator=(deferredThreadScheduler&& rhs) = delete;
 
   ~deferredThreadScheduler() noexcept
   {
@@ -485,7 +491,7 @@ private:
         // wait here the termination
         return terminate();
       }
-      catch (std::exception& e)
+      catch (const std::exception& e)
       {
         // remove the entry for this thread from the static map
         eraseCancellationFlag(getThreadId());
@@ -541,7 +547,7 @@ private:
           // wait here the termination
           return terminate();
         }
-        catch (std::exception& e)
+        catch (const std::exception& e)
         {
           // remove the entry for this thread from the static map
           eraseCancellationFlag(getThreadId());
