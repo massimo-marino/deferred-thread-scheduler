@@ -755,26 +755,37 @@ TEST(deferredThreadScheduler, test_13)
 // the scope so the dtor is called and the thread's cancellation flags are set
 TEST(deferredThreadScheduler, test_14)
 {
+  using threadResultType = int;
+  using threadFun = std::function<threadResultType()>;
+  using dtsSharedPtr = std::shared_ptr<deferredThreadScheduler<threadResultType, threadFun>>;
+
   const unsigned int maxLoops {25};
+  auto deferredTime {0s};
+  const unsigned int numThreads {10'000};
 
   for (unsigned int l {1}; l <= maxLoops; ++l)
   {
     {
-      using threadResultType = int;
-      using threadFun = std::function<threadResultType()>;
-      using dtsSharedPtr = std::shared_ptr<deferredThreadScheduler<threadResultType, threadFun>>;
       std::vector<dtsSharedPtr> v {};
-      auto deferredTime {0s};
-      const unsigned int numThreads {10'000};
 
       for (unsigned int i {1}; i <= numThreads; ++i)
       {
         auto dtsPtr = makeSharedDeferredThreadScheduler<threadResultType, threadFun>("intFoo");
-        dtsPtr.get()->registerThread([]() noexcept(false) -> threadResultType
+        dtsPtr.get()->registerThread([i]() noexcept(false) -> threadResultType
                                      {
                                        std::this_thread::sleep_for(std::chrono::milliseconds(750));
-                                       // safe cancellation point, use the macro
-                                       TERMINATE_ON_CANCELLATION(threadResultType)
+                                       // safe cancellation point, we should use the macro, but for test purposes we
+                                       // explicitly does its job with a log
+                                       //TERMINATE_ON_CANCELLATION(threadResultType)
+                                       if ( deferredThreadSchedulerBase::isCancellationFlagSet() )
+                                       {
+                                         // of course, we'll see just a few of these logs when the test is run
+                                         std::cout << i
+                                                   << ": Cancellation flag set: Thread is cancelled and returning now...\n";
+
+                                         return threadResultType {};
+                                       }
+                                       return 111;
                                      } );
         v.push_back(dtsPtr);
 
@@ -786,7 +797,7 @@ TEST(deferredThreadScheduler, test_14)
       for (auto& dts : v)
       {
         // since the deferred time is 0 seconds we should expect the thread status
-        // as either: scheduled, running, or run
+        // to be either: scheduled, running, or run
         dts.get()->runIn(deferredTime);
 
         ASSERT_TRUE(dts.get()->getThreadState() == static_cast<int>(deferredThreadSchedulerBase::threadState::Scheduled) ||
@@ -800,11 +811,14 @@ TEST(deferredThreadScheduler, test_14)
       std::cout << l
                 << "/"
                 << maxLoops
-                << ": exiting scope..." << std::flush;
+                << ": exiting scope..."
+                << std::flush;
+
       // all dts objects are destroyed, and cancellation flags for the threads that
       // are not yet terminated are set; since the threads check the flag, they
       // will terminate
     }
+
     auto [cfSize, cfSet, cfUnset] = deferredThreadSchedulerBase::listCancellationFlags(std::cout);
     ASSERT_EQ(0, cfSize);
     ASSERT_EQ(0, cfSet);
