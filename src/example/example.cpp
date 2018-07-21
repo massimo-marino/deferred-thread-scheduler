@@ -4,7 +4,6 @@
  * 
  * Created on November 17, 2017, 11:57 AM
  */
-
 #include "../deferredThreadScheduler.h"
 ////////////////////////////////////////////////////////////////////////////////
 auto main() -> int
@@ -33,58 +32,54 @@ auto main() -> int
   // create an object for the deferred thread scheduler and register the thread function
   deferredThreadScheduler<threadResultType, threadFun> dts {"concatStrings", concatStrings, s1, s2};
 
-  if ( dts.isRegistered() )
-  {
-    std::cout << "[" << __func__ << "] "
-              << "Registered: OK\n";
-  }
-  else
+  if ( !dts.isRegistered() )
   {
     std::cout << "[" << __func__ << "] "
               << "Registered: NOT OK\n";
+    return -1;
   }
+
+  std::cout << "[" << __func__ << "] "
+            << "Registered: OK\n";
 
   // the deferred time in seconds
   auto deferredTime {4s};
   // schedule the thread to run in deferredTime seconds from now
   dts.runIn(deferredTime);
 
-  if ( dts.isScheduled() )
-  {
-    std::cout << "[" << __func__ << "] "
-              << "Scheduled: OK\n";
-  }
-  else
+  if ( !dts.isScheduled() )
   {
     std::cout << "[" << __func__ << "] "
               << "Scheduled: NOT OK\n";
+    return -2;
   }
+
+  std::cout << "[" << __func__ << "] "
+            << "Scheduled: OK\n";
 
   // wait here the end of the thread
   auto [threadState, threadResult] = dts.wait_for(3950ms);
+
   // dont loop forever, just some more time after the time-out
-  for(auto i {1}; i <= 200 && false == dts.isRun(threadState); ++i)
+  for (auto i {1}; i <= 200 && false == dts.isRun(threadState); ++i)
   {
     std::tie(threadState, threadResult) = dts.wait_for(1ms);
   }
 
-  if ( dts.isRun(threadState) )
-  {
-    std::cout << "[" << __func__ << "] "
-              << "Run: OK\n";
-  }
-  else
+  if ( !dts.isRun(threadState) )
   {
     std::cout << "[" << __func__ << "] "
               << "Run: NOT OK\n";
+    return -3;
   }
 
   std::cout << "[" << __func__ << "] "
+            << "Run: OK\n"
+            << "[" << __func__ << "] "
             << "Thread result: '"
             << threadResult
-            << "'\n";
-
-  std::cout << "[" << __func__ << "] "
+            << "'\n"
+            << "[" << __func__ << "] "
             << "Deferred Thread Scheduler Example ENDED\n"
             << std::endl;
 
