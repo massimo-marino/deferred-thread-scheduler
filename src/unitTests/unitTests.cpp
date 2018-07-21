@@ -775,7 +775,6 @@ TEST(deferredThreadScheduler, test_14)
                                        std::this_thread::sleep_for(std::chrono::milliseconds(750));
                                        // safe cancellation point, use the macro
                                        TERMINATE_ON_CANCELLATION(threadResultType)
-                                       return 0;
                                      } );
         v.push_back(dtsPtr);
 
