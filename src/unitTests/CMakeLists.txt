@@ -1,10 +1,14 @@
+#
+# cmake file for simple programs that are not linked with any library
+#
+SET (THE_PROJECT "deferredThreadScheduler-unit-tests")
+#
 cmake_minimum_required(VERSION 3.5)
-
-PROJECT( deferredThreadScheduler-unit-tests )
+PROJECT(${THE_PROJECT})
 
 ################################################################################
-#### settings for clang 5.0
-SET (CMAKE_CXX_COMPILER "/clang_5.0.0/bin/clang++-5.0")
+#### settings for clang 7.0.0
+SET (CMAKE_CXX_COMPILER "/clang_7.0.0/bin/clang++")
 SET (CLANG_CXX_FLAGS "-I. -I.. -std=c++17 -Ofast -ffast-math -pthread -pedantic -pedantic-errors -Wall -Weffc++ -Wextra -Wfatal-errors -Weverything -Wno-c++98-compat -Wno-c++98-compat-pedantic -fno-assume-sane-operator-new")
 ####SET (CLANG_CXX_FLAGS "${CLANG_CXX_FLAGS} -fsanitize=undefined")
 SET (GOOGLETEST_LIBS "-lgtest_dll -lgtest_main")
@@ -13,10 +17,14 @@ SET (CMAKE_CXX_FLAGS "${CLANG_CXX_FLAGS} -mtune=native -march=native -m64 -lm -l
 SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
 ### use libc++
 #SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-SET (CMAKE_LIBRARY_PATH "/usr/lib/x86_64-linux-gnu")
+#####SET (CMAKE_LIBRARY_PATH "/usr/lib/x86_64-linux-gnu")
 ################################################################################
 
 SET (CMAKE_VERBOSE_MAKEFILE on )
+
+SET( sources_list unitTests.cpp concurrentLogging.cpp ../deferredThreadScheduler.cpp ../deferredThreadScheduler.h )
+
+ADD_EXECUTABLE( unitTests ${sources_list} )
 
 # ------------------------- Begin Generic CMake Variable Logging ------------------
 
@@ -171,7 +179,3 @@ MESSAGE( STATUS "CMAKE_RANLIB: " ${CMAKE_RANLIB} )
 MESSAGE( STATUS )
 
 # ------------------------- End of Generic CMake Variable Logging ------------------
-
-SET( sources_list unitTests.cpp concurrentLogging.cpp ../deferredThreadScheduler.cpp ../deferredThreadScheduler.h )
-
-ADD_EXECUTABLE( unitTests ${sources_list} )

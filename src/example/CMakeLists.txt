@@ -1,22 +1,37 @@
+#
+# cmake file for simple programs that are linked with some library
+#
+SET (THE_PROJECT "deferredThreadScheduler-example")
+#
 cmake_minimum_required(VERSION 3.5)
-
-PROJECT( deferredThreadScheduler-example )
+PROJECT(${THE_PROJECT})
 
 ################################################################################
-#### settings for clang 5.0
-SET (CMAKE_CXX_COMPILER "/clang_5.0.0/bin/clang++-5.0")
-SET (CMAKE_INCLUDE_PATH "-I. -I/clang_5.0.0/include/c++/v1" )
+#### settings for clang 7.0.0
+SET (CMAKE_CXX_COMPILER "/clang_7.0.0/bin/clang++")
+#SET (CMAKE_CXX_STANDARD 17)
+SET (CMAKE_INCLUDE_PATH "-I/clang_7.0.0/include/c++/v1 -I." )
+################################################################################
+##
+## for debugging add -pg and replace -Ofast with -O0: -pg -O0
+##
 SET (CLANG_CXX_FLAGS "${CMAKE_INCLUDE_PATH} -std=c++17 -Ofast -ffast-math -pthread -pedantic -pedantic-errors -Wall -Weffc++ -Wextra -Wfatal-errors -Weverything -Wno-c++98-compat -Wno-c++98-compat-pedantic -fno-assume-sane-operator-new")
 ####SET (CLANG_CXX_FLAGS "${CLANG_CXX_FLAGS} -fsanitize=undefined")
-SET (CMAKE_CXX_FLAGS "${CLANG_CXX_FLAGS} -mtune=native -march=native -m64 -lm -lpthread -lc++experimental")
+SET (CMAKE_CXX_FLAGS "${CLANG_CXX_FLAGS} -mtune=native -march=native -m64 -lm -lpthread -lc++experimental") # -lm -lrt -lpthread -lc++experimental")
 ### use libstdc++
 #SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
 ### use libc++
 SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-SET (CMAKE_LIBRARY_PATH "/usr/lib/x86_64-linux-gnu")
+#SET (CMAKE_LIBRARY_PATH "/usr/lib/x86_64-linux-gnu")
 ################################################################################
 
 SET (CMAKE_VERBOSE_MAKEFILE on )
+
+SET( sources_list example.cpp )
+
+ADD_EXECUTABLE( example ${sources_list} )
+
+TARGET_LINK_LIBRARIES (example LINK_PUBLIC deferredThreadScheduler)
 
 # ------------------------- Begin Generic CMake Variable Logging ------------------
 
@@ -171,9 +186,3 @@ MESSAGE( STATUS "CMAKE_RANLIB: " ${CMAKE_RANLIB} )
 MESSAGE( STATUS )
 
 # ------------------------- End of Generic CMake Variable Logging ------------------
-
-SET( sources_list example.cpp )
-
-ADD_EXECUTABLE( example ${sources_list} )
-
-TARGET_LINK_LIBRARIES (example LINK_PUBLIC deferredThreadScheduler)
