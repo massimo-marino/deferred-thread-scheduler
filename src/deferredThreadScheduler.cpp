@@ -6,7 +6,7 @@
  */
 #include "deferredThreadScheduler.h"
 ////////////////////////////////////////////////////////////////////////////////
-namespace deferredThreadScheduler
+namespace DTS
 {
 cflags deferredThreadSchedulerBase::cancellationFlags_ {};
 
@@ -95,7 +95,7 @@ deferredThreadSchedulerBase::getThreadState_() const noexcept
   std::lock_guard<std::mutex> lg(threadState_mx_);
   return threadState_;
 }
-}  // namespace deferredThreadScheduler
+}  // namespace DTS
 ////////////////////////////////////////////////////////////////////////////////
 #pragma clang diagnostic pop
 // END: ignore the warnings when compiled with clang up to here

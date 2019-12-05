@@ -12,7 +12,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 using namespace ::testing;
 using namespace ::utilities;
-using namespace ::deferredThreadScheduler;
+using namespace ::DTS;
 // BEGIN: ignore the warnings listed below when compiled with clang from here
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wexit-time-destructors"

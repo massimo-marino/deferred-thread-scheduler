@@ -25,7 +25,7 @@
 #pragma clang diagnostic ignored "-Wglobal-constructors"
 #pragma clang diagnostic ignored "-Wpadded"
 ////////////////////////////////////////////////////////////////////////////////
-namespace deferredThreadScheduler
+namespace DTS
 {
 using namespace std::chrono_literals;
 
@@ -613,4 +613,4 @@ makeSharedDeferredThreadScheduler(const std::string& threadName) noexcept
 {
   return createSharedPtr<deferredThreadScheduler<T, F>>(threadName);
 }
-}  // namespace deferredThreadScheduler
+}  // namespace DTS

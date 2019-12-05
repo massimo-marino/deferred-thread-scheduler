@@ -7,17 +7,17 @@ cmake_minimum_required(VERSION 3.5)
 PROJECT(${THE_PROJECT})
 
 ################################################################################
-#### settings for clang 7.0.0
-SET (CMAKE_CXX_COMPILER "/clang_7.0.0/bin/clang++")
+#### settings for clang 9.0.0
+SET (CMAKE_CXX_COMPILER "/clang_9.0.0/bin/clang++")
 #SET (CMAKE_CXX_STANDARD 17)
-SET (CMAKE_INCLUDE_PATH "-I/clang_7.0.0/include/c++/v1 -I." )
+SET (CMAKE_INCLUDE_PATH "-I/clang_9.0.0/include/c++/v1 -I." )
 ################################################################################
 ##
 ## for debugging add -pg and replace -Ofast with -O0: -pg -O0
 ##
 SET (CLANG_CXX_FLAGS "${CMAKE_INCLUDE_PATH} -std=c++17 -Ofast -ffast-math -pthread -pedantic -pedantic-errors -Wall -Weffc++ -Wextra -Wfatal-errors -Weverything -Wno-c++98-compat -Wno-c++98-compat-pedantic -fno-assume-sane-operator-new")
 ####SET (CLANG_CXX_FLAGS "${CLANG_CXX_FLAGS} -fsanitize=undefined")
-SET (CMAKE_CXX_FLAGS "${CLANG_CXX_FLAGS} -mtune=native -march=native -m64 -lm -lpthread -lc++experimental") # -lm -lrt -lpthread -lc++experimental")
+SET (CMAKE_CXX_FLAGS "${CLANG_CXX_FLAGS} -mtune=native -march=native -m64 -lm -lpthread") # -lm -lrt -lpthread -lc++experimental")
 ### use libstdc++
 #SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
 ### use libc++

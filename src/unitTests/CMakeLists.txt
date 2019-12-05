@@ -7,8 +7,8 @@ cmake_minimum_required(VERSION 3.5)
 PROJECT(${THE_PROJECT})
 
 ################################################################################
-#### settings for clang 7.0.0
-SET (CMAKE_CXX_COMPILER "/clang_7.0.0/bin/clang++")
+#### settings for clang 9.0.0
+SET (CMAKE_CXX_COMPILER "/clang_9.0.0/bin/clang++")
 SET (CLANG_CXX_FLAGS "-I. -I.. -std=c++17 -Ofast -ffast-math -pthread -pedantic -pedantic-errors -Wall -Weffc++ -Wextra -Wfatal-errors -Weverything -Wno-c++98-compat -Wno-c++98-compat-pedantic -fno-assume-sane-operator-new")
 ####SET (CLANG_CXX_FLAGS "${CLANG_CXX_FLAGS} -fsanitize=undefined")
 SET (GOOGLETEST_LIBS "-lgtest_dll -lgtest_main")

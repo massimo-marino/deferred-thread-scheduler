@@ -9,7 +9,7 @@
 auto main() -> int
 {
   using namespace std::chrono_literals;
-  using namespace deferredThreadScheduler;
+  using namespace DTS;
 
   std::cout << "\n[" << __func__ << "] "
             << "Deferred Thread Scheduler Example STARTED\n";
